@@ -71,8 +71,8 @@ type StudentFormData = Omit<Student, 'id' | 'numericId'|'paymentMethod' | 'docum
 // --- COMPONENTES DE UI Y LÓGICA ---
 
 // Hook para detectar clics fuera de un elemento
-const useOnClickOutside = (ref: React.RefObject<HTMLElement>, handler: (event: MouseEvent | TouchEvent) => void) => {
-  useEffect(() => {
+const useOnClickOutside = (ref: React.RefObject<HTMLElement | null>, handler: (event: MouseEvent | TouchEvent) => void) => {
+useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       if (!ref.current || ref.current.contains(event.target as Node)) return;
       handler(event);
