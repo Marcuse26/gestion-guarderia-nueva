@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef, FC } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import type { ChartType, ChartData, ChartOptions } from 'chart.js';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, query } from 'firebase/firestore';
-import { Users, Clock, FileText, DollarSign, UserPlus, Download, LogIn, LogOut, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Save, Briefcase, BarChart2, PieChart, UserCheck, Cake, Settings as SettingsIcon, Bell, Trash2, Printer, Edit, Upload, Paperclip, History } from 'lucide-react';
+import { Users, Clock, FileText, DollarSign, UserPlus, Download, LogIn, LogOut, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Save, Briefcase, BarChart2, UserCheck, Cake, Settings as SettingsIcon, Trash2, Printer, Edit, Upload, Paperclip, History } from 'lucide-react';
 import { Chart, registerables } from 'chart.js';
-import type { ChartType, ChartData, ChartOptions } from 'chart.js';
 
 // --- INICIALIZACIÓN DE FIREBASE ---
 const firebaseConfig = {
@@ -21,7 +21,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-
 
 // --- Declaración global para jsPDF ---
 declare global {
@@ -72,7 +71,7 @@ type StudentFormData = Omit<Student, 'id' | 'numericId'|'paymentMethod' | 'docum
 // --- COMPONENTES DE UI Y LÓGICA ---
 
 // Hook para detectar clics fuera de un elemento
-const useOnClickOutside = (ref: React.RefObject<HTMLDivElement>, handler: (event: MouseEvent | TouchEvent) => void) => {
+const useOnClickOutside = (ref: React.RefObject<HTMLElement>, handler: (event: MouseEvent | TouchEvent) => void) => {
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       if (!ref.current || ref.current.contains(event.target as Node)) return;
@@ -141,14 +140,14 @@ const loadScript = (src: string, id: string) => {
 
 
 // Componente del Logo - "mi pequeño recreo"
-const MiPequenoRecreoLogo: FC<{ width?: number; className?: string }> = ({ width = 150, className = '' }) => (
+const MiPequenoRecreoLogo = ({ width = 150, className = '' }: { width?: number; className?: string }) => (
     <div style={{ fontFamily: "'Dancing Script', cursive", color: '#c55a33', fontSize: `${width / 5}px`, textAlign: 'center' }} className={className}>
         mi pequeño recreo
     </div>
 );
 
 // Componente del Logo PEKEMANAGER
-const PekemanagerLogo: FC<{ size?: number }> = ({ size = 24 }) => (
+const PekemanagerLogo = ({ size = 24 }: { size?: number }) => (
     <div style={{ display: 'flex', alignItems: 'center', fontFamily: "'Arial Black', Gadget, sans-serif", fontSize: `${size}px`, color: '#212529' }}>
         <div style={{ position: 'relative', marginRight: '5px' }}>
             <span style={{ fontSize: `${size * 1.5}px`, color: '#212529' }}>P</span>
@@ -160,7 +159,7 @@ const PekemanagerLogo: FC<{ size?: number }> = ({ size = 24 }) => (
 
 
 // Componente de Gráfico reutilizable
-const ChartComponent: FC<{ type: ChartType; data: ChartData; options: ChartOptions }> = ({ type, data, options }) => {
+const ChartComponent = ({ type, data, options }: { type: ChartType; data: ChartData; options: ChartOptions }) => {
     const chartRef = useRef<HTMLCanvasElement>(null);
     useEffect(() => {
         if (!chartRef.current) return;
@@ -171,7 +170,7 @@ const ChartComponent: FC<{ type: ChartType; data: ChartData; options: ChartOptio
 };
 
 // Componente para Notificaciones
-const Notification: FC<{ message: string; onClose: () => void }> = ({ message, onClose }) => {
+const Notification = ({ message, onClose }: { message: string; onClose: () => void }) => {
     useEffect(() => {
         const timer = setTimeout(onClose, 3000);
         return () => clearTimeout(timer);
@@ -182,7 +181,7 @@ const Notification: FC<{ message: string; onClose: () => void }> = ({ message, o
 // --- COMPONENTES DE UI Y LÓGICA ---
 
 // Componente de carga
-const LoadingSpinner: FC = () => (
+const LoadingSpinner = () => (
     <div style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
         <p>Cargando datos...</p>
@@ -192,7 +191,7 @@ const LoadingSpinner: FC = () => (
 // --- COMPONENTES DE MODALES ---
 
 // Modal de confirmación
-const ConfirmModal: FC<{ message: string; onConfirm: () => void; onCancel: () => void; }> = ({ message, onConfirm, onCancel }) => {
+const ConfirmModal = ({ message, onConfirm, onCancel }: { message: string; onConfirm: () => void; onCancel: () => void; }) => {
     const modalRef = useRef<HTMLDivElement>(null);
     useOnClickOutside(modalRef, onCancel);
     return (
@@ -211,7 +210,7 @@ const ConfirmModal: FC<{ message: string; onConfirm: () => void; onCancel: () =>
 
 
 // Calendario Personalizado del Alumno
-const StudentPersonalCalendar: FC<{ student: Student; attendance: Attendance[]; penalties: Penalty[]; onClose: () => void; }> = ({ student, attendance, penalties, onClose }) => {
+const StudentPersonalCalendar = ({ student, attendance, penalties, onClose }: { student: Student; attendance: Attendance[]; penalties: Penalty[]; onClose: () => void; }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const calendarRef = useRef<HTMLDivElement>(null);
     const modalRef = useRef<HTMLDivElement>(null);
@@ -310,17 +309,16 @@ const StudentPersonalCalendar: FC<{ student: Student; attendance: Attendance[]; 
 };
 
 // Modal para ver la ficha del alumno
-const StudentDetailModal: FC<{
+const StudentDetailModal = ({ student, onClose, schedules, onViewPersonalCalendar, onUpdate, onAddDocument, onGenerateAndExportInvoice, currentUser }: {
     student: Student;
     onClose: () => void;
-    attendance: Attendance[];
     schedules: Schedule[];
     onViewPersonalCalendar: (student: Student) => void;
     onUpdate: (studentId: string, updatedData: Partial<Omit<Student, 'id'>>, currentUser: string) => void;
     onAddDocument: (studentId: string, document: Document, currentUser: string) => void;
-    onGenerateAndExportInvoice: (student: Student) => void; // CORRECCIÓN: Nueva función unificada
+    onGenerateAndExportInvoice: (student: Student) => void;
     currentUser: string;
-}> = ({ student, onClose, attendance, schedules, onViewPersonalCalendar, onUpdate, onAddDocument, onGenerateAndExportInvoice, currentUser }) => {
+}) => {
     const modalRef = useRef<HTMLDivElement>(null);
     useOnClickOutside(modalRef, onClose);
     
@@ -464,7 +462,7 @@ const StudentDetailModal: FC<{
 };
 
 // --- PANTALLA DE INICIO DE SESIÓN ---
-const LoginScreen: FC<{ onLogin: (username: string) => void }> = ({ onLogin }) => {
+const LoginScreen = ({ onLogin }: { onLogin: (username: string) => void }) => {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -550,7 +548,7 @@ const LoginScreen: FC<{ onLogin: (username: string) => void }> = ({ onLogin }) =
 
 // --- COMPONENTES DE PESTAÑA (DEFINIDOS ANTES DE USARLOS) ---
 
-const Dashboard: FC<{ students: Student[], staff: Staff[], attendance: Attendance[], invoices: Invoice[], schedules: Schedule[], config: Config }> = ({ students, staff, attendance, invoices, schedules, config }) => {
+const Dashboard = ({ students, staff, attendance, invoices, schedules, config }: { students: Student[], staff: Staff[], attendance: Attendance[], invoices: Invoice[], schedules: Schedule[], config: Config }) => {
     const todayStr = new Date().toISOString().split('T')[0];
     const presentToday = attendance.filter(a => a.date === todayStr).length;
     const monthlyBilling = invoices.filter(inv => new Date(inv.date).getMonth() === new Date().getMonth()).reduce((sum, inv) => sum + inv.amount, 0);
@@ -576,7 +574,7 @@ const Dashboard: FC<{ students: Student[], staff: Staff[], attendance: Attendanc
 };
 
 // Componente para la lista de alumnos
-const StudentList: FC<{ students: Student[], onSelectChild: (student: Student) => void, onDeleteChild: (id: string, name: string) => void, onExport: () => void }> = ({ students, onSelectChild, onDeleteChild, onExport }) => {
+const StudentList = ({ students, onSelectChild, onDeleteChild, onExport }: { students: Student[], onSelectChild: (student: Student) => void, onDeleteChild: (id: string, name: string) => void, onExport: () => void }) => {
   const [searchTerm, setSearchTerm] = useState('');
   
   const filteredStudents = students.filter(student =>
@@ -623,7 +621,7 @@ const StudentList: FC<{ students: Student[], onSelectChild: (student: Student) =
 
 
 // Componente para el formulario de inscripción
-const NewStudentForm: FC<{ onAddChild: (e: React.FormEvent) => void, childForm: StudentFormData, onFormChange: React.Dispatch<React.SetStateAction<StudentFormData>>, schedules: Schedule[] }> = ({ onAddChild, childForm, onFormChange, schedules }) => {
+const NewStudentForm = ({ onAddChild, childForm, onFormChange, schedules }: { onAddChild: (e: React.FormEvent) => void, childForm: StudentFormData, onFormChange: React.Dispatch<React.SetStateAction<StudentFormData>>, schedules: Schedule[] }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { const { name, value, type } = e.target; const isCheckbox = type === 'checkbox'; onFormChange(prev => ({ ...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value })); };
   return (
     <div style={styles.card}><h3 style={styles.cardTitle}>Ficha de Inscripción</h3>
@@ -657,11 +655,11 @@ const NewStudentForm: FC<{ onAddChild: (e: React.FormEvent) => void, childForm: 
   );
 };
 
-const AttendanceManager: FC<{ students: Student[], attendance: Attendance[], onSave: (data: Omit<Attendance, 'id' | 'childId'> & {childId: number}) => void, onExport: () => void }> = ({ students, attendance, onSave, onExport }) => {
+const AttendanceManager = ({ students, attendance, onSave, onExport }: { students: Student[], attendance: Attendance[], onSave: (data: Omit<Attendance, 'id' | 'childId'> & {childId: number}) => void, onExport: () => void }) => {
     const today = new Date().toISOString().split('T')[0];
     const [attendanceData, setAttendanceData] = useState<Record<number, Partial<Omit<Attendance, 'id' | 'childId' | 'childName' | 'date'>>>>({});
     const handleAttendanceChange = (childId: number, field: keyof Omit<Attendance, 'id' | 'childId' | 'childName' | 'date'>, value: string) => { setAttendanceData(prev => ({ ...prev, [childId]: { ...prev[childId], [field]: value } })); };
-    const handleSaveClick = (childId: number, childName: string) => { const dataToSave = { childId, childName, date: today, ...attendanceData[childId] }; onSave(dataToSave); };
+    const handleSaveClick = (childId: number, childName: string) => { const dataToSave = { childId, childName, date: today, ...attendanceData[childId] }; onSave(dataToSave as any); };
     return (
         <div style={styles.card}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
@@ -670,16 +668,16 @@ const AttendanceManager: FC<{ students: Student[], attendance: Attendance[], onS
             </div>
             <div style={styles.listContainer}>
                 {students.map(student => {
-                    const todayAttendance = attendance.find(a => a.childId === student.numericId && a.date === today) || {};
+                    const todayAttendance = attendance.find(a => a.childId === student.numericId && a.date === today);
                     const currentData = attendanceData[student.numericId] || {};
                     return (
                         <div key={student.id} style={styles.attendanceItem}>
                             <p style={styles.listItemName}>{student.name} {student.surname}</p>
                             <div style={styles.attendanceGrid}>
-                                <input type="time" style={styles.formInputSmall} defaultValue={todayAttendance.entryTime} onChange={(e) => handleAttendanceChange(student.numericId, 'entryTime', e.target.value)} />
-                                <input type="text" placeholder="Quién lo deja" style={styles.formInputSmall} defaultValue={todayAttendance.droppedOffBy} onChange={(e) => handleAttendanceChange(student.numericId, 'droppedOffBy', e.target.value)} />
-                                <input type="time" style={styles.formInputSmall} defaultValue={todayAttendance.exitTime} onChange={(e) => handleAttendanceChange(student.numericId, 'exitTime', e.target.value)} />
-                                <input type="text" placeholder="Quién lo recoge" style={styles.formInputSmall} defaultValue={todayAttendance.pickedUpBy} onChange={(e) => handleAttendanceChange(student.numericId, 'pickedUpBy', e.target.value)} />
+                                <input type="time" style={styles.formInputSmall} defaultValue={todayAttendance?.entryTime} onChange={(e) => handleAttendanceChange(student.numericId, 'entryTime', e.target.value)} />
+                                <input type="text" placeholder="Quién lo deja" style={styles.formInputSmall} defaultValue={todayAttendance?.droppedOffBy} onChange={(e) => handleAttendanceChange(student.numericId, 'droppedOffBy', e.target.value)} />
+                                <input type="time" style={styles.formInputSmall} defaultValue={todayAttendance?.exitTime} onChange={(e) => handleAttendanceChange(student.numericId, 'exitTime', e.target.value)} />
+                                <input type="text" placeholder="Quién lo recoge" style={styles.formInputSmall} defaultValue={todayAttendance?.pickedUpBy} onChange={(e) => handleAttendanceChange(student.numericId, 'pickedUpBy', e.target.value)} />
                                 <button style={styles.saveButton} onClick={() => handleSaveClick(student.numericId, `${student.name} ${student.surname}`)} disabled={!currentData.entryTime && !currentData.exitTime}><Save size={16} /></button>
                             </div>
                         </div>
@@ -690,7 +688,7 @@ const AttendanceManager: FC<{ students: Student[], attendance: Attendance[], onS
     );
 };
 
-const Invoicing: FC<{ invoices: Invoice[], onGenerate: () => void, onUpdateStatus: (invoiceId: string, newStatus: Invoice['status']) => void, config: Config, onExport: () => void }> = ({ invoices, onGenerate, onUpdateStatus, config, onExport }) => {
+const Invoicing = ({ invoices, onGenerate, onUpdateStatus, config, onExport }: { invoices: Invoice[], onGenerate: () => void, onUpdateStatus: (invoiceId: string, newStatus: Invoice['status']) => void, config: Config, onExport: () => void }) => {
     const handleStatusChange = (invoiceId: string, newStatus: Invoice['status']) => { onUpdateStatus(invoiceId, newStatus); };
     return (
         <div style={styles.card}>
@@ -712,7 +710,7 @@ const Invoicing: FC<{ invoices: Invoice[], onGenerate: () => void, onUpdateStatu
     );
 };
 
-const PenaltiesViewer: FC<{ penalties: Penalty[], config: Config, onExport: () => void, onUpdatePenalty: (id: string, data: Partial<Omit<Penalty, 'id'>>) => void, onDeletePenalty: (id: string) => void }> = ({ penalties, config, onExport, onUpdatePenalty, onDeletePenalty }) => {
+const PenaltiesViewer = ({ penalties, config, onExport, onUpdatePenalty, onDeletePenalty }: { penalties: Penalty[], config: Config, onExport: () => void, onUpdatePenalty: (id: string, data: Partial<Omit<Penalty, 'id'>>) => void, onDeletePenalty: (id: string) => void }) => {
     const [editingPenalty, setEditingPenalty] = useState<Penalty | null>(null);
     const [editedData, setEditedData] = useState<{amount: number, reason: string}>({ amount: 0, reason: '' });
 
@@ -785,7 +783,7 @@ const PenaltiesViewer: FC<{ penalties: Penalty[], config: Config, onExport: () =
     );
 };
 
-const StaffManager: FC<{ staff: Staff[], onAddStaff: (newStaff: Omit<Staff, 'id' | 'checkIn' | 'checkOut'>) => void, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, onExport: () => void }> = ({ staff, onAddStaff, onUpdateStaff, onExport }) => {
+const StaffManager = ({ staff, onAddStaff, onUpdateStaff, onExport }: { staff: Staff[], onAddStaff: (newStaff: Omit<Staff, 'id' | 'checkIn' | 'checkOut'>) => void, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, onExport: () => void }) => {
     const [newStaff, setNewStaff] = useState({name: '', role: '', phone: ''});
     const handleAdd = (e: React.FormEvent) => { e.preventDefault(); onAddStaff(newStaff); setNewStaff({name: '', role: '', phone: ''}); };
     const handleCheckIn = (id: string) => onUpdateStaff(id, { checkIn: new Date().toLocaleTimeString(), checkOut: '' });
@@ -806,7 +804,7 @@ const StaffManager: FC<{ staff: Staff[], onAddStaff: (newStaff: Omit<Staff, 'id'
     );
 };
 
-const Settings: FC<{ config: Config, onSave: (config: Config) => void, addNotification: (message: string) => void }> = ({ config, onSave, addNotification }) => {
+const Settings = ({ config, onSave, addNotification }: { config: Config, onSave: (config: Config) => void, addNotification: (message: string) => void }) => {
     const [localConfig, setLocalConfig] = useState(config);
     useEffect(() => setLocalConfig(config), [config]);
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => { const { name, value } = e.target; setLocalConfig(prev => ({ ...prev, [name]: name === 'lateFee' ? Number(value) : value })); };
@@ -828,7 +826,7 @@ const Settings: FC<{ config: Config, onSave: (config: Config) => void, addNotifi
 };
 
 // Calendario General
-const Calendar: FC<{ attendance: Attendance[] }> = ({ attendance }) => {
+const Calendar = ({ attendance }: { attendance: Attendance[] }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const changeMonth = (amount: number) => { setCurrentDate(prevDate => { const newDate = new Date(prevDate); newDate.setMonth(newDate.getMonth() + amount); return newDate; }); };
 
@@ -884,7 +882,7 @@ const Calendar: FC<{ attendance: Attendance[] }> = ({ attendance }) => {
 };
 
 // Historial General de la App
-const AppHistoryViewer: FC<{ history: AppHistoryLog[], onExport: () => void }> = ({ history, onExport }) => {
+const AppHistoryViewer = ({ history, onExport }: { history: AppHistoryLog[], onExport: () => void }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const filteredHistory = history.filter(log =>
         log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -931,10 +929,10 @@ const App = () => {
   const [viewingCalendarForStudent, setViewingCalendarForStudent] = useState<Student | null>(null);
   const [notifications, setNotifications] = useState<NotificationMessage[]>([]);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, message: string, onConfirm: () => void }>({ isOpen: false, message: '', onConfirm: () => {} });
-  const [isLoading, setIsLoading] = useState(true); // Nuevo estado de carga
+  const [isLoading, setIsLoading] = useState(true);
 
   const [userId, setUserId] = useState<string | null>(null);
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'pekemanager-app';
+  const appId = 'pekemanager-app';
 
 
   // --- DATOS Y ESTADO GLOBAL ---
@@ -976,11 +974,11 @@ const App = () => {
       if (user) {
         setUserId(user.uid);
         console.log("Firebase Auth conectado y listo. UID:", user.uid);
-        setIsLoading(false); // Mejora: Quitar la carga cuando el usuario está listo
+        setIsLoading(false);
       } else {
         signInAnonymously(auth).catch((error) => {
             console.error("Error en el inicio de sesión anónimo:", error);
-            setIsLoading(false); // Quitar la carga también si hay error
+            setIsLoading(false);
         });
       }
     });
@@ -1025,7 +1023,7 @@ const App = () => {
 
   }, [userId]);
 
-  // SOLUCIÓN: Sincronizar el modal con los datos actualizados de Firestore
+  // Sincronizar el modal con los datos actualizados de Firestore
   useEffect(() => {
       if(selectedChild) {
           const freshStudentData = children.find(c => c.id === selectedChild.id);
@@ -1361,7 +1359,6 @@ const App = () => {
         }
     };
     
-    // CORRECCIÓN: Función unificada para generar y exportar la factura
     const handleGenerateAndExportInvoice = async (student: Student) => {
         const month = new Date().getMonth();
         const year = new Date().getFullYear();
@@ -1502,6 +1499,12 @@ const App = () => {
             font-weight: 700;
             font-style: normal;
           }
+          
+          /* Spinner Animation */
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
         `}
       </style>
       <div style={styles.notificationContainer}>{notifications.map(n => <Notification key={n.id} message={n.message} onClose={() => setNotifications(p => p.filter(item => item.id !== n.id))} />)}</div>
@@ -1517,7 +1520,6 @@ const App = () => {
       {selectedChild && <StudentDetailModal 
           student={selectedChild} 
           onClose={() => setSelectedChild(null)} 
-          attendance={attendance} 
           schedules={schedules} 
           onViewPersonalCalendar={(student) => {
               setSelectedChild(null);
@@ -1626,7 +1628,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   mainContent: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   header: { padding: '20px 30px', borderBottom: '1px solid #e9ecef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', flexShrink: 0 },
   headerTitle: { margin: 0, fontSize: '28px', color: '#212529', fontWeight: '700' },
-  actionButton: { padding: '10px 15px', border: 'none', borderRadius: '6px', backgroundColor: '#007bff', color: 'white', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: '500', transition: 'background-color 0.2s', ':hover': { backgroundColor: '#0056b3' } },
+  actionButton: { padding: '10px 15px', border: 'none', borderRadius: '6px', backgroundColor: '#007bff', color: 'white', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: '500', transition: 'background-color 0.2s' },
   contentArea: { padding: '30px', overflowY: 'auto', flex: 1 },
   grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '30px' },
   card: { backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' },
@@ -1638,12 +1640,12 @@ const styles: { [key: string]: React.CSSProperties } = {
   listItemInfo: { margin: '4px 0 0 0', fontSize: '14px', color: '#6c757d' },
   pillSuccess: { backgroundColor: 'rgba(40, 167, 69, 0.1)', color: '#155724', padding: '5px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' },
   pillWarning: { backgroundColor: 'rgba(255, 193, 7, 0.1)', color: '#856404', padding: '5px 12px', borderRadius: '12px', fontSize: '12px', fontWeight: '600' },
-  pillInfo: { backgroundColor: 'rgba(0, 123, 255, 0.1)', color: '#004085', padding: '6px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', border: 'none', cursor: 'pointer', transition: 'background-color 0.2s', ':hover': {backgroundColor: 'rgba(0, 123, 255, 0.2)'}},
+  pillInfo: { backgroundColor: 'rgba(0, 123, 255, 0.1)', color: '#004085', padding: '6px 14px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', border: 'none', cursor: 'pointer' },
   formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' },
   formInput: { display: 'block', width: '100%', boxSizing: 'border-box', padding: '12px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', marginBottom: '10px' },
   checkboxLabel: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' },
-  submitButton: { width: '100%', padding: '12px', border: 'none', borderRadius: '6px', backgroundColor: '#007bff', color: 'white', fontSize: '16px', cursor: 'pointer', marginTop: '10px', ':hover': {backgroundColor: '#0056b3'} },
-  deleteButton: { backgroundColor: 'rgba(220, 53, 69, 0.1)', color: '#dc3545', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', ':hover': {backgroundColor: 'rgba(220, 53, 69, 0.2)'} },
+  submitButton: { width: '100%', padding: '12px', border: 'none', borderRadius: '6px', backgroundColor: '#007bff', color: 'white', fontSize: '16px', cursor: 'pointer', marginTop: '10px' },
+  deleteButton: { backgroundColor: 'rgba(220, 53, 69, 0.1)', color: '#dc3545', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   modalBackdrop: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   modalContent: { backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '700px', boxShadow: '0 5px 15px rgba(0,0,0,0.3)', position: 'relative' },
   modalGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', rowGap: '5px' },
@@ -1666,7 +1668,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   attendanceItem: { padding: '15px 5px', borderBottom: '1px solid #f1f3f5' },
   attendanceGrid: { display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1.5fr auto', gap: '10px', alignItems: 'center', marginTop: '10px' },
   formInputSmall: { width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' },
-  saveButton: { backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', ':hover': {backgroundColor: '#218838'} },
+  saveButton: { backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', padding: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   dashboardGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' },
   statCard: { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: '20px' },
   chartContainer: { position: 'relative', height: '300px', width: '100%' },
@@ -1691,10 +1693,5 @@ const styles: { [key: string]: React.CSSProperties } = {
         height: '40px',
         animation: 'spin 1s linear infinite',
         marginBottom: '20px'
-    },
-    '@keyframes spin': {
-        '0%': { transform: 'rotate(0deg)' },
-        '100%': { transform: 'rotate(360deg)' }
     }
 };
-
