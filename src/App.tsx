@@ -5,6 +5,8 @@ import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, query } from 'firebase/firestore';
 import { Users, Clock, FileText, DollarSign, UserPlus, Download, LogIn, LogOut, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Save, Briefcase, BarChart2, UserCheck, Cake, Settings as SettingsIcon, Trash2, Printer, Edit, Upload, Paperclip, History } from 'lucide-react';
 import { Chart, registerables } from 'chart.js';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 // --- INICIALIZACIÓN DE FIREBASE ---
 const firebaseConfig = {
@@ -21,13 +23,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
-
-// --- Declaración global para jsPDF ---
-declare global {
-    interface Window {
-        jspdf: any;
-    }
-}
 
 Chart.register(...registerables);
 
@@ -72,7 +67,7 @@ type StudentFormData = Omit<Student, 'id' | 'numericId'|'paymentMethod' | 'docum
 
 // Hook para detectar clics fuera de un elemento
 const useOnClickOutside = (ref: React.RefObject<HTMLElement | null>, handler: (event: MouseEvent | TouchEvent) => void) => {
-useEffect(() => {
+  useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
       if (!ref.current || ref.current.contains(event.target as Node)) return;
       handler(event);
@@ -122,22 +117,6 @@ const downloadCSV = (csvContent: string, fileName: string) => {
         document.body.removeChild(link);
     }
 };
-
-const loadScript = (src: string, id: string) => {
-    return new Promise((resolve, reject) => {
-        if (document.getElementById(id)) {
-            resolve(true);
-            return;
-        }
-        const script = document.createElement('script');
-        script.src = src;
-        script.id = id;
-        script.onload = () => resolve(true);
-        script.onerror = () => reject(false);
-        document.head.appendChild(script);
-    });
-};
-
 
 // Componente del Logo - "mi pequeño recreo"
 const MiPequenoRecreoLogo = ({ width = 150, className = '' }: { width?: number; className?: string }) => (
@@ -965,11 +944,6 @@ const App = () => {
 
   // --- INICIALIZACIÓN DE FIREBASE Y AUTH LISTENER ---
   useEffect(() => {
-    Promise.all([
-        loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js", "jspdf-script"),
-        loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js", "jspdf-autotable-script")
-    ]).catch(err => console.error("Error loading PDF scripts", err));
-    
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUserId(user.uid);
@@ -1407,11 +1381,6 @@ const App = () => {
     };
 
     const handleGeneratePDFInvoice = (student: Student, invoice: Invoice) => {
-        if (!window.jspdf) {
-            addNotification("La librería PDF no se ha cargado todavía. Inténtalo de nuevo en unos segundos.");
-            return;
-        }
-        const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
         // Logo
