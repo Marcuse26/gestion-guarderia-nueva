@@ -1,11 +1,59 @@
-/* Reemplaza el #root original por este */
+/* Ajusta el contenedor raíz para que ocupe todo */
 #root {
-  width: 100%;
-  max-width: 100%;
-  padding: 2rem;
+  max-width: 100vw; /* Ocupa el 100% del ancho de la ventana */
+  margin: 0;
+  padding: 0; /* Quitamos el padding para que sea pantalla completa */
   text-align: center;
 }
 
+/* Estilos principales del layout */
+.appContainer {
+  display: flex;
+  flex-direction: row; /* En ordenador, la barra lateral está al lado */
+  height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.sidebar {
+  width: 260px;
+  background-color: #ffffff;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-right: 1px solid #e9ecef;
+  flex-shrink: 0; /* Evita que la barra lateral se encoja */
+}
+
+.mainContent {
+  flex-grow: 1; /* Ocupa el espacio restante */
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* Permite scroll solo en el área principal */
+}
+
+/* --- ESTILOS PARA MÓVIL --- */
+/* Cuando la pantalla sea de 768px o menos, se aplicarán estos estilos */
+@media (max-width: 768px) {
+  .appContainer {
+    flex-direction: column; /* La barra lateral se pone arriba */
+    height: auto; /* La altura se ajusta al contenido */
+  }
+
+  .sidebar {
+    width: 100%; /* La barra lateral ocupa todo el ancho */
+    height: auto;
+    border-right: none; /* Quitamos el borde derecho */
+    border-bottom: 1px solid #e9ecef; /* Añadimos un borde abajo */
+  }
+
+  /* Hacemos que el área de contenido principal tenga algo de espacio */
+  .contentArea {
+      padding: 15px !important;
+  }
+}
+
+/* Estilos del logo que ya tenías */
 .logo {
   height: 6em;
   padding: 1.5em;
