@@ -6,7 +6,7 @@ import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, updateDoc, d
 import { Users, Clock, FileText, DollarSign, UserPlus, Download, LogIn, LogOut, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Save, Briefcase, BarChart2, UserCheck, Cake, Settings as SettingsIcon, Trash2, Printer, Edit, Upload, Paperclip, History } from 'lucide-react';
 import { Chart, registerables } from 'chart.js';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // --- INICIALIZACIÓN DE FIREBASE ---
 const firebaseConfig = {
@@ -269,7 +269,7 @@ const StudentPersonalCalendar = ({ student, attendance, penalties, onClose }: { 
       <div style={styles.modalBackdrop}>
           <div style={{...styles.modalContent, maxWidth: '900px'}} ref={modalRef}>
               <div style={{...styles.calendarHeader, position: 'relative'}}>
-                  <h2 style={styles.cardTitle}>Calendario de {student.name} {student.surname}</h2>
+                  <h2 style={styles.cardTitle}>Calendario de ${student.name} ${student.surname}</h2>
                   <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
                       <button onClick={() => changeMonth(-1)} style={styles.calendarNavButton}><ChevronLeft /></button>
                       <h3 style={{margin: 0, minWidth: '180px', textAlign: 'center'}}>{currentDate.toLocaleString('es-ES', { month: 'long', year: 'numeric' }).toUpperCase()}</h3>
@@ -947,7 +947,7 @@ const App = () => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setUserId(user.uid);
-        console.log("Firebase Auth conectado y listo. UID:", user.uid);
+        // console.log("Firebase Auth conectado y listo. UID:", user.uid);
         setIsLoading(false);
       } else {
         signInAnonymously(auth).catch((error) => {
@@ -1380,7 +1380,12 @@ const App = () => {
         handleGeneratePDFInvoice(student, invoiceToExport);
     };
 
-    const handleGeneratePDFInvoice = (student: Student, invoice: Invoice) => {
+    const handleGeneratePDFInvoice = (student: Student, invoice: Invoice | undefined) => {
+        if (!student || !invoice) {
+            addNotification("Error: Faltan datos del alumno o de la factura para generar el PDF.");
+            return;
+        }
+
         const doc = new jsPDF();
 
         // Logo
@@ -1426,15 +1431,15 @@ const App = () => {
             tableRows.push([`Penalizaciones por retraso`, "", "", `${invoice.penalties.toFixed(2)} ${config.currency}`]);
         }
         
-        tableRows.push(["", "", { content: "Total", styles: { halign: 'right', fontStyle: 'bold' } }, { content: `${invoice.amount.toFixed(2)} ${config.currency}`, styles: { fontStyle: 'bold' } }]);
+        tableRows.push(["", "", { content: "Total", styles: { fontStyle: 'bold' } }, { content: `${invoice.amount.toFixed(2)} ${config.currency}`, styles: { fontStyle: 'bold' } }]);
 
-        (doc as any).autoTable({
+        autoTable(doc, {
             startY: 90,
             head: [tableColumn],
             body: tableRows,
             theme: 'grid',
             headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
-            didDrawPage: (data: any) => {
+            didDrawPage: (data) => {
                  // Footer
                 doc.setFontSize(10);
                 doc.text(`Forma de pago: ${student.paymentMethod}`, data.settings.margin.left, doc.internal.pageSize.getHeight() - 25);
@@ -1443,6 +1448,10 @@ const App = () => {
                 doc.setFontSize(18);
                 doc.setTextColor('#c55a33');
                 doc.text("mi pequeño recreo", 105, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+            },
+            columnStyles: {
+                2: { halign: 'right' },
+                3: { halign: 'right' },
             }
         });
         
@@ -1460,14 +1469,6 @@ const App = () => {
         {`
           @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap');
           @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-          
-          /* Add font definitions for jsPDF */
-          @font-face {
-            font-family: 'cursive';
-            src: url('https://fonts.gstatic.com/s/dancingscript/v24/If2cXTr6YS-zF4S-kcSWSVi_szLviuEViw.woff2') format('woff2');
-            font-weight: 700;
-            font-style: normal;
-          }
           
           /* Spinner Animation */
           @keyframes spin {
