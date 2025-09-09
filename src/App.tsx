@@ -1384,13 +1384,13 @@ const App = () => {
         const doc = new jsPDF();
 
         // Logo
-        doc.setFont('cursive', 'bold');
+        doc.setFont('Helvetica', 'bold');
         doc.setFontSize(32);
         doc.setTextColor('#c55a33');
         doc.text("mi pequeño recreo", 105, 22, { align: 'center' });
 
         // Datos de la empresa
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('Helvetica', 'normal');
         doc.setFontSize(10);
         doc.setTextColor(40, 40, 40);
         doc.text("Vision Paideia SLU", 20, 40);
@@ -1404,9 +1404,9 @@ const App = () => {
         // Datos del cliente
         doc.setDrawColor(220, 220, 220);
         doc.rect(15, 60, 180, 25); 
-        doc.setFont('helvetica', 'bold');
+        doc.setFont('Helvetica', 'bold');
         doc.text("Cliente:", 20, 66);
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('Helvetica', 'normal');
         const clientName = student.accountHolderName || `${student.fatherName || ''} ${student.motherName || ''}`.trim();
         doc.text(`Nombre y apellidos: ${clientName}`, 20, 72);
         doc.text(`NIF: ${student.nif || 'No especificado'}`, 20, 78);
@@ -1439,7 +1439,7 @@ const App = () => {
                 doc.setFontSize(10);
                 doc.text(`Forma de pago: ${student.paymentMethod}`, data.settings.margin.left, doc.internal.pageSize.getHeight() - 25);
                 
-                doc.setFont('cursive', 'bold');
+                doc.setFont('Helvetica', 'bold');
                 doc.setFontSize(18);
                 doc.setTextColor('#c55a33');
                 doc.text("mi pequeño recreo", 105, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
