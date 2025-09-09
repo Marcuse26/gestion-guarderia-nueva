@@ -1431,7 +1431,7 @@ const App = () => {
             tableRows.push([`Penalizaciones por retraso`, "", "", `${invoice.penalties.toFixed(2)} ${config.currency}`]);
         }
         
-        tableRows.push(["", "", { content: "Total", styles: { fontStyle: 'bold' } }, { content: `${invoice.amount.toFixed(2)} ${config.currency}`, styles: { fontStyle: 'bold' } }]);
+        tableRows.push(["", "", { content: "Total", styles: { fontStyle: 'bold' } } as any, { content: `${invoice.amount.toFixed(2)} ${config.currency}`, styles: { fontStyle: 'bold' } } as any]);
 
         autoTable(doc, {
             startY: 90,
