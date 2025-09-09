@@ -1508,8 +1508,8 @@ const App = () => {
           penalties={penalties}
       />}
 
-      <div style={styles.appContainer}>
-        <aside style={styles.sidebar}>
+      <div className="appContainer">
+        <aside className="sidebar">
           <div>
             <div style={{ padding: '20px 15px', display: 'flex', justifyContent: 'center' }}><MiPequenoRecreoLogo width={180}/></div>
             <h2 style={styles.sidebarTitle}>General</h2>
@@ -1548,7 +1548,7 @@ const App = () => {
           </div>
         </aside>
 
-        <main style={styles.mainContent}>
+        <main className="mainContent">
           <header style={styles.header}>
             <h1 style={styles.headerTitle}>{activeTab === 'inscripciones' ? 'Nueva Inscripción' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
           </header>
@@ -1587,15 +1587,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   userName: { fontSize: '14px', fontWeight: '500', color: '#343a40', },
   selectedUserProfile: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px', },
   switchUserButton: { background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', fontSize: '14px', marginTop: '15px', padding: '5px', },
-  appContainer: { display: 'flex', height: '100vh', backgroundColor: '#f8f9fa', fontFamily: 'system-ui, sans-serif' },
-  sidebar: { width: '260px', backgroundColor: '#ffffff', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px solid #e9ecef' },
-  sidebarTitle: { fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', color: '#6c757d', padding: '0 15px', marginBottom: '10px', fontWeight: '600' },
-  sidebarButton: { display: 'flex', alignItems: 'center', width: '100%', padding: '12px 15px', border: 'none', backgroundColor: 'transparent', textAlign: 'left', fontSize: '15px', color: '#495057', borderRadius: '8px', cursor: 'pointer', marginBottom: '5px', transition: 'background-color 0.2s, color 0.2s' },
-  sidebarButtonActive: { backgroundColor: '#e9f3ff', color: '#007bff', fontWeight: '600' },
-  currentUserInfo: { padding: '10px 15px', fontSize: '14px', color: '#495057', textAlign: 'center', borderTop: '1px solid #e9ecef', marginTop: '10px' },
-  sidebarFooter: { padding: '15px', fontSize: '12px', color: '#6c757d', textAlign: 'center', borderTop: '1px solid #e9ecef', marginTop: '10px' },
-  logoutButton: { color: '#dc3545' },
-  mainContent: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   header: { padding: '20px 30px', borderBottom: '1px solid #e9ecef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', flexShrink: 0 },
   headerTitle: { margin: 0, fontSize: '28px', color: '#212529', fontWeight: '700' },
   actionButton: { padding: '10px 15px', border: 'none', borderRadius: '6px', backgroundColor: '#007bff', color: 'white', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: '500', transition: 'background-color 0.2s' },
