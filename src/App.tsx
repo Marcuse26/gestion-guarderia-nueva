@@ -539,10 +539,10 @@ const Dashboard = ({ students, staff, attendance, invoices, schedules, config }:
     return (
         <div>
             <div style={styles.dashboardGrid}>
-                <div style={styles.statCard}><UserCheck size={28} style={{color: '#28a745'}}/><div><p style={styles.statCardText}>Alumnos Hoy</p><span style={styles.statCardNumber}>{presentToday} / {students.length}</span></div></div>
-                <div style={styles.statCard}><DollarSign size={28} style={{color: '#007bff'}}/><div><p style={styles.statCardText}>Facturación del Mes</p><span style={styles.statCardNumber}>{monthlyBilling.toFixed(2)}{config.currency}</span></div></div>
-                <div style={styles.statCard}><Cake size={28} style={{color: '#ffc107'}}/><div><p style={styles.statCardText}>Próximos Cumpleaños</p><span style={styles.statCardNumber}>{upcomingBirthdays.length}</span></div></div>
-                <div style={styles.statCard}><Briefcase size={28} style={{color: '#17a2b8'}}/><div><p style={styles.statCardText}>Personal Activo</p><span style={styles.statCardNumber}>{staff.filter(s => s.checkIn && !s.checkOut).length}</span></div></div>
+                <div style={styles.statCard}><UserCheck size={28} style={{color: '#28a745'}}/><div className="statCardContent"><p>Alumnos Hoy</p><span>{presentToday} / {students.length}</span></div></div>
+                <div style={styles.statCard}><DollarSign size={28} style={{color: '#007bff'}}/><div className="statCardContent"><p>Facturación del Mes</p><span>{monthlyBilling.toFixed(2)}{config.currency}</span></div></div>
+                <div style={styles.statCard}><Cake size={28} style={{color: '#ffc107'}}/><div className="statCardContent"><p>Próximos Cumpleaños</p><span>{upcomingBirthdays.length}</span></div></div>
+                <div style={styles.statCard}><Briefcase size={28} style={{color: '#17a2b8'}}/><div className="statCardContent"><p>Personal Activo</p><span>{staff.filter(s => s.checkIn && !s.checkOut).length}</span></div></div>
             </div>
             <div style={{...styles.grid, marginTop: '30px'}}>
                 <div style={styles.card}><h3 style={styles.cardTitle}>Asistencia Última Semana</h3><ChartComponent type="bar" data={attendanceChartData} options={chartOptions} /></div>
@@ -1654,7 +1654,5 @@ const styles: { [key: string]: React.CSSProperties } = {
         height: '40px',
         animation: 'spin 1s linear infinite',
         marginBottom: '20px'
-    },
-    statCardText: { margin: 0, color: '#6c757d', fontSize: '14px' },
-    statCardNumber: { color: '#212529', fontSize: '22px', fontWeight: '600' }
+    }
 };
