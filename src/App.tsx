@@ -1523,6 +1523,19 @@ const App = () => {
   if (isLoading) return <LoadingSpinner />;
   if (!isLoggedIn) return <LoginScreen onLogin={handleLogin} />;
 
+  const adminTabs = [
+      { id: 'facturacion', name: 'Facturación', icon: FileText },
+      { id: 'penalizaciones', name: 'Penalizaciones', icon: DollarSign },
+  ];
+
+  if (currentUser === 'gonzalo') {
+      adminTabs.push(
+        { id: 'personal', name: 'Personal', icon: Briefcase },
+        { id: 'historial', name: 'Historial Web', icon: History },
+        { id: 'configuracion', name: 'Configuración', icon: SettingsIcon }
+      );
+  }
+
   return (
     <>
       <style>
@@ -1584,13 +1597,7 @@ const App = () => {
               return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
             })}
             <h2 style={{...styles.sidebarTitle, marginTop: '20px'}}>Administración</h2>
-            {[
-              { id: 'facturacion', name: 'Facturación', icon: FileText },
-              { id: 'penalizaciones', name: 'Penalizaciones', icon: DollarSign },
-              { id: 'personal', name: 'Personal', icon: Briefcase },
-              { id: 'historial', name: 'Historial Web', icon: History },
-              { id: 'configuracion', name: 'Configuración', icon: SettingsIcon },
-            ].map(tab => {
+            {adminTabs.map(tab => {
               const Icon = tab.icon; const isActive = activeTab === tab.id;
               return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
             })}
