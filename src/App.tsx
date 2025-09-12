@@ -62,7 +62,7 @@ type Student = {
 type Attendance = { id: string; childId: number; childName: string; date: string; entryTime?: string; exitTime?: string; droppedOffBy?: string; pickedUpBy?: string; };
 type Penalty = { id: string; childId: number; childName: string; date: string; amount: number; reason: string; };
 type Invoice = { id: string; numericId: number; childId: number; childName: string; date: string; amount: number; base: number; penalties: number; enrollmentFeeIncluded: boolean; status: 'Pendiente' | 'Pagada' | 'Vencida'; };
-type Staff = { id: string; name: string; role: string; phone: string; checkIn: string; checkOut: string; };
+type Staff = { id: string; name: string; username: string; role: string; phone: string; checkIn: string; checkOut: string; };
 type Config = { centerName: string; currency: string; lateFee: number; };
 type NotificationMessage = { id: number; message: string; };
 type StudentFormData = Omit<Student, 'id' | 'numericId'|'paymentMethod' | 'documents' | 'modificationHistory'> & { paymentMethod: Student['paymentMethod'] | ''; accountHolderName: string; };
@@ -773,21 +773,27 @@ const PenaltiesViewer = ({ penalties, config, onExport, onUpdatePenalty, onDelet
 };
 
 const StaffManager = ({ staff, onAddStaff, onUpdateStaff, onExport }: { staff: Staff[], onAddStaff: (newStaff: Omit<Staff, 'id' | 'checkIn' | 'checkOut'>) => void, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, onExport: () => void }) => {
-    const [newStaff, setNewStaff] = useState({name: '', role: '', phone: ''});
-    const handleAdd = (e: React.FormEvent) => { e.preventDefault(); onAddStaff(newStaff); setNewStaff({name: '', role: '', phone: ''}); };
+    const [newStaff, setNewStaff] = useState({name: '', username: '', role: '', phone: ''});
+    const handleAdd = (e: React.FormEvent) => { e.preventDefault(); onAddStaff({...newStaff, checkIn: '', checkOut: ''}); setNewStaff({name: '', username: '', role: '', phone: ''}); };
     const handleCheckIn = (id: string) => onUpdateStaff(id, { checkIn: new Date().toLocaleTimeString(), checkOut: '' });
     const handleCheckOut = (id: string) => onUpdateStaff(id, { checkOut: new Date().toLocaleTimeString() });
     return (
         <div style={styles.grid}>
             <div style={styles.card}><h3 style={styles.cardTitle}>Añadir Personal</h3>
-                <form onSubmit={handleAdd}><input value={newStaff.name} onChange={(e) => setNewStaff({...newStaff, name: e.target.value})} placeholder="Nombre completo" style={styles.formInput} /><input value={newStaff.role} onChange={(e) => setNewStaff({...newStaff, role: e.target.value})} placeholder="Cargo" style={styles.formInput} /><input value={newStaff.phone} onChange={(e) => setNewStaff({...newStaff, phone: e.target.value})} placeholder="Teléfono" style={styles.formInput} /><button type="submit" style={styles.submitButton}>Añadir Empleado</button></form>
+                <form onSubmit={handleAdd}>
+                    <input value={newStaff.name} onChange={(e) => setNewStaff({...newStaff, name: e.target.value})} placeholder="Nombre completo" style={styles.formInput} required />
+                    <input value={newStaff.username} onChange={(e) => setNewStaff({...newStaff, username: e.target.value})} placeholder="Nombre de usuario (ej: trabajador1)" style={styles.formInput} required />
+                    <input value={newStaff.role} onChange={(e) => setNewStaff({...newStaff, role: e.target.value})} placeholder="Cargo" style={styles.formInput} />
+                    <input value={newStaff.phone} onChange={(e) => setNewStaff({...newStaff, phone: e.target.value})} placeholder="Teléfono" style={styles.formInput} />
+                    <button type="submit" style={styles.submitButton}>Añadir Empleado</button>
+                </form>
             </div>
             <div style={styles.card}>
                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                     <h3 style={styles.cardTitle}>Control Horario del Personal</h3>
                     <button onClick={onExport} style={{...styles.actionButton, backgroundColor: '#17a2b8'}}><Download size={16} style={{marginRight: '8px'}} />Exportar</button>
                 </div>
-                <div style={styles.listContainer}>{staff.map(s => (<div key={s.id} style={styles.listItem}><div><p style={styles.listItemName}>{s.name}</p><p style={styles.listItemInfo}>{s.role}</p></div><div style={{display: 'flex', gap: '10px'}}><button onClick={() => handleCheckIn(s.id)} style={styles.pillSuccess}>Entrada</button><button onClick={() => handleCheckOut(s.id)} style={styles.pillWarning}>Salida</button></div></div>))}</div>
+                <div style={styles.listContainer}>{staff.map(s => (<div key={s.id} style={styles.listItem}><div><p style={styles.listItemName}>{s.name} <span style={{color: '#6c757d', fontSize: '12px'}}>({s.username})</span></p><p style={styles.listItemInfo}>{s.role}</p></div><div style={{display: 'flex', gap: '10px'}}><button onClick={() => handleCheckIn(s.id)} style={styles.pillSuccess}>Entrada: {s.checkIn || '-'}</button><button onClick={() => handleCheckOut(s.id)} style={styles.pillWarning}>Salida: {s.checkOut || '-'}</button></div></div>))}</div>
             </div>
         </div>
     );
@@ -910,7 +916,7 @@ const AppHistoryViewer = ({ history, onExport }: { history: AppHistoryLog[], onE
 
 // NUEVO COMPONENTE: Control de Fichaje para Empleados
 const StaffControl = ({ staff, currentUser, onUpdateStaff, addNotification }: { staff: Staff[], currentUser: string, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, addNotification: (message: string) => void }) => {
-    const staffMember = staff.find(s => s.name.toLowerCase() === currentUser.toLowerCase());
+    const staffMember = staff.find(s => s.username.toLowerCase() === currentUser.toLowerCase());
 
     if (!staffMember) {
         return <div style={styles.card}><p>No se encontró tu perfil de empleado. Contacta al administrador.</p></div>;
@@ -1129,6 +1135,7 @@ const App = () => {
         case 'personal': 
             dataToExport = staff.map(s => ({
                 Nombre: s.name,
+                Usuario: s.username,
                 Cargo: s.role,
                 Telefono: s.phone,
                 Hora_Entrada: s.checkIn,
@@ -1165,6 +1172,8 @@ const App = () => {
   const handleLogin = (username: string) => {
     setIsLoggedIn(true);
     setCurrentUser(username);
+    const isAdmin = username === 'gonzalo';
+    setActiveTab(isAdmin ? 'dashboard' : 'control');
     addAppHistoryLog(username, 'Inicio de Sesión', `El usuario ${username} ha iniciado sesión.`);
   };
 
@@ -1402,12 +1411,11 @@ const App = () => {
         }
     };
     
-    const handleAddStaff = async (staffData: Omit<Staff, 'id' | 'checkIn' | 'checkOut'>) => {
+    const handleAddStaff = async (staffData: Omit<Staff, 'id'>) => {
         if (!userId) return;
-        const newStaffData = { ...staffData, checkIn: '', checkOut: ''};
         try {
             const staffCollectionPath = `/artifacts/${appId}/public/data/staff`;
-            await addDoc(collection(db, staffCollectionPath), newStaffData);
+            await addDoc(collection(db, staffCollectionPath), staffData);
             addNotification("Nuevo miembro de personal añadido.");
         } catch (error) {
             console.error("Error adding staff: ", error);
@@ -1617,17 +1625,23 @@ const App = () => {
         <aside style={styles.sidebar}>
           <div>
             <div style={{ padding: '20px 15px', display: 'flex', justifyContent: 'center' }}><MiPequenoRecreoLogo width={180}/></div>
-            <h2 style={styles.sidebarTitle}>General</h2>
-            {[
-              { id: 'dashboard', name: 'Panel de Control', icon: BarChart2 },
-              { id: 'inscripciones', name: 'Nueva Inscripción', icon: UserPlus },
-              { id: 'alumnos', name: 'Alumnos', icon: Users },
-              { id: 'asistencia', name: 'Asistencia', icon: Clock },
-              { id: 'calendario', name: 'Calendario', icon: CalendarIcon },
-            ].map(tab => {
-              const Icon = tab.icon; const isActive = activeTab === tab.id;
-              return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
-            })}
+            
+            {/* VISTAS COMUNES PARA TODOS */}
+            {currentUser === 'gonzalo' && (
+              <>
+                <h2 style={styles.sidebarTitle}>General</h2>
+                {[
+                  { id: 'dashboard', name: 'Panel de Control', icon: BarChart2 },
+                  { id: 'inscripciones', name: 'Nueva Inscripción', icon: UserPlus },
+                  { id: 'alumnos', name: 'Alumnos', icon: Users },
+                  { id: 'asistencia', name: 'Asistencia', icon: Clock },
+                  { id: 'calendario', name: 'Calendario', icon: CalendarIcon },
+                ].map(tab => {
+                  const Icon = tab.icon; const isActive = activeTab === tab.id;
+                  return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
+                })}
+              </>
+            )}
             
             {/* VISTA PARA TRABAJADORES */}
             {['trabajador1', 'trabajador2', 'trabajador3'].includes(currentUser) && (
@@ -1677,12 +1691,12 @@ const App = () => {
           </header>
           <div style={styles.contentArea}>
             {activeTab === 'dashboard' && <Dashboard students={children} attendance={attendance} invoices={invoices} schedules={schedules} config={config} />}
-            {activeTab === 'inscripciones' && <NewStudentForm onAddChild={handleAddChild} childForm={childForm} onFormChange={setChildForm} schedules={schedules} />}
-            {activeTab === 'alumnos' && <StudentList students={children} onSelectChild={setSelectedChild} onDeleteChild={handleDeleteChild} onExport={() => handleExport('alumnos')} />}
-            {activeTab === 'asistencia' && <AttendanceManager students={children} attendance={attendance} onSave={handleSaveAttendance} onExport={() => handleExport('asistencia')} />}
-            {activeTab === 'calendario' && <Calendar attendance={attendance} />}
             
-            {/* PANELES DE ADMIN */}
+            {/* PANELES DE ADMIN Y COMUNES (si es admin) */}
+            {currentUser === 'gonzalo' && activeTab === 'inscripciones' && <NewStudentForm onAddChild={handleAddChild} childForm={childForm} onFormChange={setChildForm} schedules={schedules} />}
+            {currentUser === 'gonzalo' && activeTab === 'alumnos' && <StudentList students={children} onSelectChild={setSelectedChild} onDeleteChild={handleDeleteChild} onExport={() => handleExport('alumnos')} />}
+            {currentUser === 'gonzalo' && activeTab === 'asistencia' && <AttendanceManager students={children} attendance={attendance} onSave={handleSaveAttendance} onExport={() => handleExport('asistencia')} />}
+            {currentUser === 'gonzalo' && activeTab === 'calendario' && <Calendar attendance={attendance} />}
             {currentUser === 'gonzalo' && activeTab === 'facturacion' && <Invoicing invoices={invoices} onGenerate={generateInvoices} onUpdateStatus={handleUpdateInvoiceStatus} config={config} onExport={() => handleExport('facturacion')} />}
             {currentUser === 'gonzalo' && activeTab === 'penalizaciones' && <PenaltiesViewer penalties={penalties} config={config} onExport={() => handleExport('penalizaciones')} onUpdatePenalty={handleUpdatePenalty} onDeletePenalty={handleDeletePenalty} />}
             {currentUser === 'gonzalo' && activeTab === 'personal' && <StaffManager staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onExport={() => handleExport('personal')} />}
