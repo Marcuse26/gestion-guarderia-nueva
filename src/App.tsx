@@ -6,7 +6,9 @@ import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, updateDoc, d
 import { Users, Clock, FileText, DollarSign, UserPlus, Download, LogIn, LogOut, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Save, Briefcase, BarChart2, UserCheck, Cake, Settings as SettingsIcon, Trash2, Printer, Edit, Upload, Paperclip, History } from 'lucide-react';
 import { Chart, registerables } from 'chart.js';
 import jsPDF from 'jspdf';
+// @ts-ignore
 import autoTable from 'jspdf-autotable';
+import webeaLogo from './assets/webea-logo.jpg'; // Importamos el logo
 
 // --- INICIALIZACIÓN DE FIREBASE ---
 const firebaseConfig = {
@@ -54,8 +56,8 @@ type Student = {
   nif?: string; // NIF/DNI del titular
   documents: Document[];
   modificationHistory: HistoryLog[];
-  startMonth: string; // Nuevo campo
-  plannedEndMonth?: string; // Nuevo campo opcional
+  startMonth?: string;
+  plannedEndMonth?: string;
 };
 type Attendance = { id: string; childId: number; childName: string; date: string; entryTime?: string; exitTime?: string; droppedOffBy?: string; pickedUpBy?: string; };
 type Penalty = { id: string; childId: number; childName: string; date: string; amount: number; reason: string; };
@@ -342,7 +344,6 @@ const StudentDetailModal = ({ student, onClose, schedules, onViewPersonalCalenda
     };
     
     const getScheduleName = (id: string) => schedules.find(s => s.id === id)?.name || 'No especificado';
-    const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
     return (
         <div style={styles.modalBackdrop}>
@@ -380,8 +381,6 @@ const StudentDetailModal = ({ student, onClose, schedules, onViewPersonalCalenda
                     </div>
                     <div style={{...styles.modalSection, gridColumn: '1 / -1'}}>
                         <h3 style={styles.modalSectionTitle}>Cuotas y Pagos</h3>
-                        <p><strong>Mes de Inicio:</strong> {isEditing ? <select name="startMonth" value={editedStudent.startMonth} onChange={handleInputChange} style={styles.formInputSmall}>{months.map(m => <option key={m} value={m}>{m}</option>)}</select> : student.startMonth}</p>
-                        <p><strong>Mes de Baja Previsto:</strong> {isEditing ? <select name="plannedEndMonth" value={editedStudent.plannedEndMonth || ''} onChange={handleInputChange} style={styles.formInputSmall}><option value="">(Opcional)</option>{months.map(m => <option key={m} value={m}>{m}</option>)}</select> : student.plannedEndMonth || 'No especificado'}</p>
                         <p><strong>Horario:</strong> {isEditing ? 
                             <select name="schedule" value={editedStudent.schedule} onChange={handleInputChange} style={styles.formInputSmall}>{schedules.map(s => <option key={s.id} value={s.id}>{s.name} ({s.price}€)</option>)}</select> 
                             : getScheduleName(student.schedule)}
@@ -547,7 +546,13 @@ const Dashboard = ({ students, staff, attendance, invoices, schedules, config }:
                 <div style={styles.statCard}><UserCheck size={28} style={{color: '#28a745'}}/><div><p style={styles.statCardText}>Alumnos Hoy</p><span style={styles.statCardNumber}>{presentToday} / {students.length}</span></div></div>
                 <div style={styles.statCard}><DollarSign size={28} style={{color: '#007bff'}}/><div><p style={styles.statCardText}>Facturación del Mes</p><span style={styles.statCardNumber}>{monthlyBilling.toFixed(2)}{config.currency}</span></div></div>
                 <div style={styles.statCard}><Cake size={28} style={{color: '#ffc107'}}/><div><p style={styles.statCardText}>Próximos Cumpleaños</p><span style={styles.statCardNumber}>{upcomingBirthdays.length}</span></div></div>
-                <div style={styles.statCard}><Briefcase size={28} style={{color: '#17a2b8'}}/><div><p style={styles.statCardText}>Personal Activo</p><span style={styles.statCardNumber}>{staff.filter(s => s.checkIn && !s.checkOut).length}</span></div></div>
+                <div style={{...styles.statCard, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px'}}>
+                    <img src={webeaLogo} alt="Logo Webea" style={{ width: '100px', marginBottom: '8px', filter: 'invert(1)' }} />
+                    <p style={{margin: 0, fontSize: '12px', color: '#6c757d'}}>Desarrollado por Webea</p>
+                    <p style={{margin: '4px 0 0 0', fontSize: '12px'}}>
+                        <span style={{fontWeight: '500'}}>Soporte:</span> webea.oficial@gmail.com
+                    </p>
+                </div>
             </div>
             <div style={{...styles.grid, marginTop: '30px'}}>
                 <div style={styles.card}><h3 style={styles.cardTitle}>Asistencia Última Semana</h3><ChartComponent type="bar" data={attendanceChartData} options={chartOptions} /></div>
@@ -607,7 +612,6 @@ const StudentList = ({ students, onSelectChild, onDeleteChild, onExport }: { stu
 // Componente para el formulario de inscripción
 const NewStudentForm = ({ onAddChild, childForm, onFormChange, schedules }: { onAddChild: (e: React.FormEvent) => void, childForm: StudentFormData, onFormChange: React.Dispatch<React.SetStateAction<StudentFormData>>, schedules: Schedule[] }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { const { name, value, type } = e.target; const isCheckbox = type === 'checkbox'; onFormChange(prev => ({ ...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value })); };
-  const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   return (
     <div style={styles.card}><h3 style={styles.cardTitle}>Ficha de Inscripción</h3>
         <form onSubmit={onAddChild}>
@@ -615,14 +619,6 @@ const NewStudentForm = ({ onAddChild, childForm, onFormChange, schedules }: { on
                 <input name="name" value={childForm.name} onChange={handleInputChange} placeholder="Nombre del Alumno" style={styles.formInput} required />
                 <input name="surname" value={childForm.surname} onChange={handleInputChange} placeholder="Apellidos" style={styles.formInput} required />
                 <input name="birthDate" type="date" value={childForm.birthDate} onChange={handleInputChange} style={{...styles.formInput, gridColumn: '1 / -1'}} required />
-                <select name="startMonth" value={childForm.startMonth} onChange={handleInputChange} style={{...styles.formInput}} required>
-                    <option value="">Seleccionar mes de inicio...</option>
-                    {months.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <select name="plannedEndMonth" value={childForm.plannedEndMonth} onChange={handleInputChange} style={{...styles.formInput}}>
-                    <option value="">Mes de baja (opcional)...</option>
-                    {months.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
                 <input name="address" value={childForm.address} onChange={handleInputChange} placeholder="Dirección Completa" style={{...styles.formInput, gridColumn: '1 / -1'}} />
                 <input name="fatherName" value={childForm.fatherName} onChange={handleInputChange} placeholder="Nombre del Padre" style={styles.formInput} />
                 <input name="phone1" type="tel" value={childForm.phone1} onChange={handleInputChange} placeholder="Teléfono 1" style={styles.formInput} required />
@@ -1515,15 +1511,15 @@ const App = () => {
             body: tableRows,
             theme: 'grid',
             headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0] },
-            didDrawPage: (data) => {
+            didDrawPage: (data: any) => {
                  // Footer
                 doc.setFontSize(10);
-                doc.text(`Forma de pago: ${student.paymentMethod}`, data.settings.margin.left, doc.internal.pageSize.getHeight() - 25);
+                doc.text(`Forma de pago: ${student.paymentMethod}`, data.settings.margin.left, (doc.internal.pageSize || {getHeight: () => 0}).getHeight() - 25);
                 
                 doc.setFont('Helvetica', 'bold');
                 doc.setFontSize(18);
                 doc.setTextColor('#c55a33');
-                doc.text("mi pequeño recreo", 105, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+                doc.text("mi pequeño recreo", 105, (doc.internal.pageSize || {getHeight: () => 0}).getHeight() - 10, { align: 'center' });
             },
             columnStyles: {
                 2: { halign: 'right' },
@@ -1600,20 +1596,16 @@ const App = () => {
               return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
             })}
             <h2 style={{...styles.sidebarTitle, marginTop: '20px'}}>Administración</h2>
-            {
-                [
-                    { id: 'facturacion', name: 'Facturación', icon: FileText },
-                    { id: 'penalizaciones', name: 'Penalizaciones', icon: DollarSign },
-                    ...(currentUser === 'gonzalo' ? [
-                        { id: 'personal', name: 'Personal', icon: Briefcase },
-                        { id: 'historial', name: 'Historial Web', icon: History },
-                        { id: 'configuracion', name: 'Configuración', icon: SettingsIcon }
-                    ] : [])
-                ].map(tab => {
-                    const Icon = tab.icon; const isActive = activeTab === tab.id;
-                    return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
-                })
-            }
+            {[
+              { id: 'facturacion', name: 'Facturación', icon: FileText },
+              { id: 'penalizaciones', name: 'Penalizaciones', icon: DollarSign },
+              { id: 'personal', name: 'Personal', icon: Briefcase },
+              { id: 'historial', name: 'Historial Web', icon: History },
+              { id: 'configuracion', name: 'Configuración', icon: SettingsIcon },
+            ].map(tab => {
+              const Icon = tab.icon; const isActive = activeTab === tab.id;
+              return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
+            })}
           </div>
           <div>
             <div style={styles.currentUserInfo}>
@@ -1622,7 +1614,7 @@ const App = () => {
             <footer style={styles.sidebarFooter}>
                 <p style={{margin: '2px 0', fontWeight: 'bold'}}>Vision Paideia SLU</p>
                 <p style={{margin: '2px 0'}}>B21898341</p>
-                <p style={{margin: '2px 0'}}>C/ Alonso Cano 24, 28003, Madrid</p>                    
+                <p style={{margin: '2px 0'}}>C/ Alonso Cano 24, 28003, Madrid</p>
             </footer>
             <button onClick={handleLogout} style={{...styles.sidebarButton, ...styles.logoutButton}}><LogOut size={20} style={{ marginRight: '12px' }} />Cerrar Sesión</button>
           </div>
@@ -1640,9 +1632,9 @@ const App = () => {
             {activeTab === 'calendario' && <Calendar attendance={attendance} />}
             {activeTab === 'facturacion' && <Invoicing invoices={invoices} onGenerate={generateInvoices} onUpdateStatus={handleUpdateInvoiceStatus} config={config} onExport={() => handleExport('facturacion')} />}
             {activeTab === 'penalizaciones' && <PenaltiesViewer penalties={penalties} config={config} onExport={() => handleExport('penalizaciones')} onUpdatePenalty={handleUpdatePenalty} onDeletePenalty={handleDeletePenalty} />}
-            {activeTab === 'personal' && currentUser === 'gonzalo' && <StaffManager staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onExport={() => handleExport('personal')} />}
-            {activeTab === 'historial' && currentUser === 'gonzalo' && <AppHistoryViewer history={appHistory} onExport={() => handleExport('historial')} />}
-            {activeTab === 'configuracion' && currentUser === 'gonzalo' && <Settings config={config} onSave={handleSaveConfig} addNotification={addNotification} />}
+            {activeTab === 'personal' && <StaffManager staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onExport={() => handleExport('personal')} />}
+            {activeTab === 'historial' && <AppHistoryViewer history={appHistory} onExport={() => handleExport('historial')} />}
+            {activeTab === 'configuracion' && <Settings config={config} onSave={handleSaveConfig} addNotification={addNotification} />}
           </div>
         </main>
       </div>
