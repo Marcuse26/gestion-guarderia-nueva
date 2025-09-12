@@ -54,6 +54,8 @@ type Student = {
   nif?: string; // NIF/DNI del titular
   documents: Document[];
   modificationHistory: HistoryLog[];
+  startMonth: string; // Nuevo campo
+  plannedEndMonth?: string; // Nuevo campo opcional
 };
 type Attendance = { id: string; childId: number; childName: string; date: string; entryTime?: string; exitTime?: string; droppedOffBy?: string; pickedUpBy?: string; };
 type Penalty = { id: string; childId: number; childName: string; date: string; amount: number; reason: string; };
@@ -340,6 +342,7 @@ const StudentDetailModal = ({ student, onClose, schedules, onViewPersonalCalenda
     };
     
     const getScheduleName = (id: string) => schedules.find(s => s.id === id)?.name || 'No especificado';
+    const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
     
     return (
         <div style={styles.modalBackdrop}>
@@ -377,6 +380,8 @@ const StudentDetailModal = ({ student, onClose, schedules, onViewPersonalCalenda
                     </div>
                     <div style={{...styles.modalSection, gridColumn: '1 / -1'}}>
                         <h3 style={styles.modalSectionTitle}>Cuotas y Pagos</h3>
+                        <p><strong>Mes de Inicio:</strong> {isEditing ? <select name="startMonth" value={editedStudent.startMonth} onChange={handleInputChange} style={styles.formInputSmall}>{months.map(m => <option key={m} value={m}>{m}</option>)}</select> : student.startMonth}</p>
+                        <p><strong>Mes de Baja Previsto:</strong> {isEditing ? <select name="plannedEndMonth" value={editedStudent.plannedEndMonth || ''} onChange={handleInputChange} style={styles.formInputSmall}><option value="">(Opcional)</option>{months.map(m => <option key={m} value={m}>{m}</option>)}</select> : student.plannedEndMonth || 'No especificado'}</p>
                         <p><strong>Horario:</strong> {isEditing ? 
                             <select name="schedule" value={editedStudent.schedule} onChange={handleInputChange} style={styles.formInputSmall}>{schedules.map(s => <option key={s.id} value={s.id}>{s.name} ({s.price}€)</option>)}</select> 
                             : getScheduleName(student.schedule)}
@@ -602,6 +607,7 @@ const StudentList = ({ students, onSelectChild, onDeleteChild, onExport }: { stu
 // Componente para el formulario de inscripción
 const NewStudentForm = ({ onAddChild, childForm, onFormChange, schedules }: { onAddChild: (e: React.FormEvent) => void, childForm: StudentFormData, onFormChange: React.Dispatch<React.SetStateAction<StudentFormData>>, schedules: Schedule[] }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { const { name, value, type } = e.target; const isCheckbox = type === 'checkbox'; onFormChange(prev => ({ ...prev, [name]: isCheckbox ? (e.target as HTMLInputElement).checked : value })); };
+  const months = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   return (
     <div style={styles.card}><h3 style={styles.cardTitle}>Ficha de Inscripción</h3>
         <form onSubmit={onAddChild}>
@@ -609,6 +615,14 @@ const NewStudentForm = ({ onAddChild, childForm, onFormChange, schedules }: { on
                 <input name="name" value={childForm.name} onChange={handleInputChange} placeholder="Nombre del Alumno" style={styles.formInput} required />
                 <input name="surname" value={childForm.surname} onChange={handleInputChange} placeholder="Apellidos" style={styles.formInput} required />
                 <input name="birthDate" type="date" value={childForm.birthDate} onChange={handleInputChange} style={{...styles.formInput, gridColumn: '1 / -1'}} required />
+                <select name="startMonth" value={childForm.startMonth} onChange={handleInputChange} style={{...styles.formInput}} required>
+                    <option value="">Seleccionar mes de inicio...</option>
+                    {months.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <select name="plannedEndMonth" value={childForm.plannedEndMonth} onChange={handleInputChange} style={{...styles.formInput}}>
+                    <option value="">Mes de baja (opcional)...</option>
+                    {months.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
                 <input name="address" value={childForm.address} onChange={handleInputChange} placeholder="Dirección Completa" style={{...styles.formInput, gridColumn: '1 / -1'}} />
                 <input name="fatherName" value={childForm.fatherName} onChange={handleInputChange} placeholder="Nombre del Padre" style={styles.formInput} />
                 <input name="phone1" type="tel" value={childForm.phone1} onChange={handleInputChange} placeholder="Teléfono 1" style={styles.formInput} required />
@@ -918,7 +932,7 @@ const App = () => {
   const [config, setConfig] = useState<Config>({ centerName: 'mi pequeño recreo', currency: '€', lateFee: 6 });
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [children, setChildren] = useState<Student[]>([]);
-  const [childForm, setChildForm] = useState<StudentFormData>({ name: '', surname: '', birthDate: '', address: '', fatherName: '', motherName: '', phone1: '', phone2: '', parentEmail: '', schedule: '', allergies: '', authorizedPickup: '', enrollmentPaid: false, monthlyPayment: true, paymentMethod: '', accountHolderName: '', nif: '' });
+  const [childForm, setChildForm] = useState<StudentFormData>({ name: '', surname: '', birthDate: '', address: '', fatherName: '', motherName: '', phone1: '', phone2: '', parentEmail: '', schedule: '', allergies: '', authorizedPickup: '', enrollmentPaid: false, monthlyPayment: true, paymentMethod: '', accountHolderName: '', nif: '', startMonth: '', plannedEndMonth: '' });
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -1037,6 +1051,8 @@ const App = () => {
                 Nombre: c.name,
                 Apellidos: c.surname,
                 Fecha_Nacimiento: c.birthDate,
+                Mes_Inicio: c.startMonth,
+                Mes_Baja_Previsto: c.plannedEndMonth,
                 Direccion: c.address,
                 Padre: c.fatherName,
                 Telefono_1: c.phone1,
@@ -1146,7 +1162,7 @@ const App = () => {
     try {
         const childrenCollectionPath = `/artifacts/${appId}/public/data/children`;
         await addDoc(collection(db, childrenCollectionPath), newChild);
-        setChildForm({ name: '', surname: '', birthDate: '', address: '', fatherName: '', motherName: '', phone1: '', phone2: '', parentEmail: '', schedule: '', allergies: '', authorizedPickup: '', enrollmentPaid: false, monthlyPayment: true, paymentMethod: '', accountHolderName: '', nif: '' });
+        setChildForm({ name: '', surname: '', birthDate: '', address: '', fatherName: '', motherName: '', phone1: '', phone2: '', parentEmail: '', schedule: '', allergies: '', authorizedPickup: '', enrollmentPaid: false, monthlyPayment: true, paymentMethod: '', accountHolderName: '', nif: '', startMonth: '', plannedEndMonth: '' });
         addNotification(`Alumno ${newChild.name} inscrito con éxito.`);
         addAppHistoryLog(currentUser, 'Inscripción', `Se ha inscrito al nuevo alumno: ${newChild.name} ${newChild.surname}.`);
         setActiveTab('alumnos');
@@ -1523,19 +1539,6 @@ const App = () => {
   if (isLoading) return <LoadingSpinner />;
   if (!isLoggedIn) return <LoginScreen onLogin={handleLogin} />;
 
-  const adminTabs = [
-      { id: 'facturacion', name: 'Facturación', icon: FileText },
-      { id: 'penalizaciones', name: 'Penalizaciones', icon: DollarSign },
-  ];
-
-  if (currentUser === 'gonzalo') {
-      adminTabs.push(
-        { id: 'personal', name: 'Personal', icon: Briefcase },
-        { id: 'historial', name: 'Historial Web', icon: History },
-        { id: 'configuracion', name: 'Configuración', icon: SettingsIcon }
-      );
-  }
-
   return (
     <>
       <style>
@@ -1597,10 +1600,20 @@ const App = () => {
               return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
             })}
             <h2 style={{...styles.sidebarTitle, marginTop: '20px'}}>Administración</h2>
-            {adminTabs.map(tab => {
-              const Icon = tab.icon; const isActive = activeTab === tab.id;
-              return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
-            })}
+            {
+                [
+                    { id: 'facturacion', name: 'Facturación', icon: FileText },
+                    { id: 'penalizaciones', name: 'Penalizaciones', icon: DollarSign },
+                    ...(currentUser === 'gonzalo' ? [
+                        { id: 'personal', name: 'Personal', icon: Briefcase },
+                        { id: 'historial', name: 'Historial Web', icon: History },
+                        { id: 'configuracion', name: 'Configuración', icon: SettingsIcon }
+                    ] : [])
+                ].map(tab => {
+                    const Icon = tab.icon; const isActive = activeTab === tab.id;
+                    return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
+                })
+            }
           </div>
           <div>
             <div style={styles.currentUserInfo}>
@@ -1627,9 +1640,9 @@ const App = () => {
             {activeTab === 'calendario' && <Calendar attendance={attendance} />}
             {activeTab === 'facturacion' && <Invoicing invoices={invoices} onGenerate={generateInvoices} onUpdateStatus={handleUpdateInvoiceStatus} config={config} onExport={() => handleExport('facturacion')} />}
             {activeTab === 'penalizaciones' && <PenaltiesViewer penalties={penalties} config={config} onExport={() => handleExport('penalizaciones')} onUpdatePenalty={handleUpdatePenalty} onDeletePenalty={handleDeletePenalty} />}
-            {activeTab === 'personal' && <StaffManager staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onExport={() => handleExport('personal')} />}
-            {activeTab === 'historial' && <AppHistoryViewer history={appHistory} onExport={() => handleExport('historial')} />}
-            {activeTab === 'configuracion' && <Settings config={config} onSave={handleSaveConfig} addNotification={addNotification} />}
+            {activeTab === 'personal' && currentUser === 'gonzalo' && <StaffManager staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onExport={() => handleExport('personal')} />}
+            {activeTab === 'historial' && currentUser === 'gonzalo' && <AppHistoryViewer history={appHistory} onExport={() => handleExport('historial')} />}
+            {activeTab === 'configuracion' && currentUser === 'gonzalo' && <Settings config={config} onSave={handleSaveConfig} addNotification={addNotification} />}
           </div>
         </main>
       </div>
