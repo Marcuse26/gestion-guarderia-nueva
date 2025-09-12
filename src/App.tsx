@@ -539,10 +539,10 @@ const Dashboard = ({ students, staff, attendance, invoices, schedules, config }:
     return (
         <div>
             <div style={styles.dashboardGrid}>
-                <div style={styles.statCard}><UserCheck size={28} style={{color: '#28a745'}}/><div className="statCardContent"><p>Alumnos Hoy</p><span>{presentToday} / {students.length}</span></div></div>
-                <div style={styles.statCard}><DollarSign size={28} style={{color: '#007bff'}}/><div className="statCardContent"><p>Facturación del Mes</p><span>{monthlyBilling.toFixed(2)}{config.currency}</span></div></div>
-                <div style={styles.statCard}><Cake size={28} style={{color: '#ffc107'}}/><div className="statCardContent"><p>Próximos Cumpleaños</p><span>{upcomingBirthdays.length}</span></div></div>
-                <div style={styles.statCard}><Briefcase size={28} style={{color: '#17a2b8'}}/><div className="statCardContent"><p>Personal Activo</p><span>{staff.filter(s => s.checkIn && !s.checkOut).length}</span></div></div>
+                <div style={styles.statCard}><UserCheck size={28} style={{color: '#28a745'}}/><div><p style={styles.statCardText}>Alumnos Hoy</p><span style={styles.statCardNumber}>{presentToday} / {students.length}</span></div></div>
+                <div style={styles.statCard}><DollarSign size={28} style={{color: '#007bff'}}/><div><p style={styles.statCardText}>Facturación del Mes</p><span style={styles.statCardNumber}>{monthlyBilling.toFixed(2)}{config.currency}</span></div></div>
+                <div style={styles.statCard}><Cake size={28} style={{color: '#ffc107'}}/><div><p style={styles.statCardText}>Próximos Cumpleaños</p><span style={styles.statCardNumber}>{upcomingBirthdays.length}</span></div></div>
+                <div style={styles.statCard}><Briefcase size={28} style={{color: '#17a2b8'}}/><div><p style={styles.statCardText}>Personal Activo</p><span style={styles.statCardNumber}>{staff.filter(s => s.checkIn && !s.checkOut).length}</span></div></div>
             </div>
             <div style={{...styles.grid, marginTop: '30px'}}>
                 <div style={styles.card}><h3 style={styles.cardTitle}>Asistencia Última Semana</h3><ChartComponent type="bar" data={attendanceChartData} options={chartOptions} /></div>
@@ -1568,8 +1568,8 @@ const App = () => {
           penalties={penalties}
       />}
 
-      <div className="appContainer">
-        <aside className="sidebar">
+      <div style={styles.appContainer}>
+        <aside style={styles.sidebar}>
           <div>
             <div style={{ padding: '20px 15px', display: 'flex', justifyContent: 'center' }}><MiPequenoRecreoLogo width={180}/></div>
             <h2 style={styles.sidebarTitle}>General</h2>
@@ -1608,11 +1608,11 @@ const App = () => {
           </div>
         </aside>
 
-        <main className="mainContent">
+        <main style={styles.mainContent}>
           <header style={styles.header}>
             <h1 style={styles.headerTitle}>{activeTab === 'inscripciones' ? 'Nueva Inscripción' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
           </header>
-          <div className="contentArea">
+          <div style={styles.contentArea}>
             {activeTab === 'dashboard' && <Dashboard students={children} staff={staff} attendance={attendance} invoices={invoices} schedules={schedules} config={config} />}
             {activeTab === 'inscripciones' && <NewStudentForm onAddChild={handleAddChild} childForm={childForm} onFormChange={setChildForm} schedules={schedules} />}
             {activeTab === 'alumnos' && <StudentList students={children} onSelectChild={setSelectedChild} onDeleteChild={handleDeleteChild} onExport={() => handleExport('alumnos')} />}
@@ -1647,9 +1647,20 @@ const styles: { [key: string]: React.CSSProperties } = {
   userName: { fontSize: '14px', fontWeight: '500', color: '#343a40', },
   selectedUserProfile: { display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px', },
   switchUserButton: { background: 'none', border: 'none', color: '#007bff', cursor: 'pointer', fontSize: '14px', marginTop: '15px', padding: '5px', },
+  appContainer: { display: 'flex', height: '100vh', backgroundColor: '#f8f9fa', fontFamily: 'system-ui, sans-serif' },
+  sidebar: { width: '260px', backgroundColor: '#ffffff', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRight: '1px solid #e9ecef' },
+  sidebarTitle: { fontSize: '12px', textTransform: 'uppercase', letterSpacing: '1px', color: '#6c757d', padding: '0 15px', marginBottom: '10px', fontWeight: '600' },
+  sidebarButton: { display: 'flex', alignItems: 'center', width: '100%', padding: '12px 15px', border: 'none', backgroundColor: 'transparent', textAlign: 'left', fontSize: '15px', color: '#495057', borderRadius: '8px', cursor: 'pointer', marginBottom: '5px', transition: 'background-color 0.2s, color 0.2s' },
+  sidebarButtonActive: { backgroundColor: '#e9f3ff', color: '#007bff', fontWeight: '600' },
+  currentUserInfo: { padding: '10px 15px', fontSize: '14px', color: '#495057', textAlign: 'center', borderTop: '1px solid #e9ecef', marginTop: '10px' },
+  sidebarFooter: { padding: '15px', fontSize: '12px', color: '#6c757d', textAlign: 'center', borderTop: '1px solid #e9ecef', marginTop: '10px' },
+  logoutButton: { color: '#dc3545' },
+  mainContent: { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
   header: { padding: '20px 30px', borderBottom: '1px solid #e9ecef', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', flexShrink: 0 },
   headerTitle: { margin: 0, fontSize: '28px', color: '#212529', fontWeight: '700' },
   actionButton: { padding: '10px 15px', border: 'none', borderRadius: '6px', backgroundColor: '#007bff', color: 'white', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: '500', transition: 'background-color 0.2s' },
+  contentArea: { padding: '30px', overflowY: 'auto', flex: 1 },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '30px' },
   card: { backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' },
   cardTitle: { marginTop: 0, marginBottom: '20px', fontSize: '20px', color: '#343a40', fontWeight: '600' },
   listContainer: { maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' },
@@ -1712,5 +1723,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         height: '40px',
         animation: 'spin 1s linear infinite',
         marginBottom: '20px'
-    }
+    },
+    statCardText: { margin: 0, color: '#6c757d', fontSize: '14px' },
+    statCardNumber: { color: '#212529', fontSize: '22px', fontWeight: '600' }
 };
