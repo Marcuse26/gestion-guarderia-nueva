@@ -531,7 +531,7 @@ const LoginScreen = ({ onLogin }: { onLogin: (username: string) => void }) => {
 
 // --- COMPONENTES DE PESTAÑA (DEFINIDOS ANTES DE USARLOS) ---
 
-const Dashboard = ({ students, staff, attendance, invoices, schedules, config }: { students: Student[], staff: Staff[], attendance: Attendance[], invoices: Invoice[], schedules: Schedule[], config: Config }) => {
+const Dashboard = ({ students, attendance, invoices, schedules, config }: { students: Student[], attendance: Attendance[], invoices: Invoice[], schedules: Schedule[], config: Config }) => {
     const todayStr = new Date().toISOString().split('T')[0];
     const presentToday = attendance.filter(a => a.date === todayStr).length;
     const monthlyBilling = invoices.filter(inv => new Date(inv.date).getMonth() === new Date().getMonth()).reduce((sum, inv) => sum + inv.amount, 0);
@@ -1625,7 +1625,7 @@ const App = () => {
             <h1 style={styles.headerTitle}>{activeTab === 'inscripciones' ? 'Nueva Inscripción' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
           </header>
           <div style={styles.contentArea}>
-            {activeTab === 'dashboard' && <Dashboard students={children} staff={staff} attendance={attendance} invoices={invoices} schedules={schedules} config={config} />}
+            {activeTab === 'dashboard' && <Dashboard students={children} attendance={attendance} invoices={invoices} schedules={schedules} config={config} />}
             {activeTab === 'inscripciones' && <NewStudentForm onAddChild={handleAddChild} childForm={childForm} onFormChange={setChildForm} schedules={schedules} />}
             {activeTab === 'alumnos' && <StudentList students={children} onSelectChild={setSelectedChild} onDeleteChild={handleDeleteChild} onExport={() => handleExport('alumnos')} />}
             {activeTab === 'asistencia' && <AttendanceManager students={children} attendance={attendance} onSave={handleSaveAttendance} onExport={() => handleExport('asistencia')} />}
