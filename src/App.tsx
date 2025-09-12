@@ -772,7 +772,7 @@ const PenaltiesViewer = ({ penalties, config, onExport, onUpdatePenalty, onDelet
     );
 };
 
-const StaffManager = ({ staff, onAddStaff, onUpdateStaff, onExport }: { staff: Staff[], onAddStaff: (newStaff: Omit<Staff, 'id' | 'checkIn' | 'checkOut'>) => void, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, onExport: () => void }) => {
+const StaffManager = ({ staff, onAddStaff, onUpdateStaff, onExport }: { staff: Staff[], onAddStaff: (newStaff: Omit<Staff, 'id'>) => void, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, onExport: () => void }) => {
     const [newStaff, setNewStaff] = useState({name: '', username: '', role: '', phone: ''});
     const handleAdd = (e: React.FormEvent) => { e.preventDefault(); onAddStaff({...newStaff, checkIn: '', checkOut: ''}); setNewStaff({name: '', username: '', role: '', phone: ''}); };
     const handleCheckIn = (id: string) => onUpdateStaff(id, { checkIn: new Date().toLocaleTimeString(), checkOut: '' });
