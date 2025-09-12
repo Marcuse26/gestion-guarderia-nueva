@@ -1623,6 +1623,8 @@ const App = () => {
                 <p style={{margin: '2px 0', fontWeight: 'bold'}}>Vision Paideia SLU</p>
                 <p style={{margin: '2px 0'}}>B21898341</p>
                 <p style={{margin: '2px 0'}}>C/ Alonso Cano 24, 28003, Madrid</p>
+                <a href="mailto:"pekemanager.oficial@gmail.com" style={{fontSize: '14px', color: '#007bff', textDecoration: 'none'}}>
+                    
             </footer>
             <button onClick={handleLogout} style={{...styles.sidebarButton, ...styles.logoutButton}}><LogOut size={20} style={{ marginRight: '12px' }} />Cerrar Sesión</button>
           </div>
