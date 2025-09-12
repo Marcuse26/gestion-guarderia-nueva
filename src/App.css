@@ -1,8 +1,7 @@
 #root {
-  width: 100%;
   max-width: 100%;
   margin: 0;
-  padding: 0; /* Eliminamos el padding para un efecto de pantalla completa real */
+  padding: 0;
   text-align: center;
 }
 
