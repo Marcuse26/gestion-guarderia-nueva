@@ -3,7 +3,7 @@ import type { ChartType, ChartData, ChartOptions } from 'chart.js';
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, query } from 'firebase/firestore';
-import { Users, Clock, FileText, DollarSign, UserPlus, Download, LogIn, LogOut, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Save, Briefcase, BarChart2, UserCheck, Cake, Settings as SettingsIcon, Trash2, Printer, Edit, Upload, Paperclip, History } from 'lucide-react';
+import { Users, Clock, FileText, DollarSign, UserPlus, Download, LogIn, LogOut, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Save, Briefcase, BarChart2, UserCheck, Cake, Settings as SettingsIcon, Trash2, Printer, Edit, Upload, Paperclip, History, UserCog } from 'lucide-react';
 import { Chart, registerables } from 'chart.js';
 import jsPDF from 'jspdf';
 // @ts-ignore
@@ -547,7 +547,7 @@ const Dashboard = ({ students, attendance, invoices, schedules, config }: { stud
                 <div style={styles.statCard}><DollarSign size={28} style={{color: '#007bff'}}/><div><p style={styles.statCardText}>Facturación del Mes</p><span style={styles.statCardNumber}>{monthlyBilling.toFixed(2)}{config.currency}</span></div></div>
                 <div style={styles.statCard}><Cake size={28} style={{color: '#ffc107'}}/><div><p style={styles.statCardText}>Próximos Cumpleaños</p><span style={styles.statCardNumber}>{upcomingBirthdays.length}</span></div></div>
                 <div style={{...styles.statCard, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px'}}>
-                    <img src={webeaLogo} alt="Logo Webea" style={{ width: '100px', marginBottom: '8px', filter: 'invert(1)' }} />
+                    <img src={webeaLogo} alt="Logo Webea" style={{ width: '100px', marginBottom: '8px' }} />
                     <p style={{margin: 0, fontSize: '12px', color: '#6c757d'}}>Desarrollado por Webea</p>
                     <p style={{margin: '4px 0 0 0', fontSize: '12px'}}>
                         <span style={{fontWeight: '500'}}>Soporte:</span> webea.oficial@gmail.com
@@ -907,6 +907,39 @@ const AppHistoryViewer = ({ history, onExport }: { history: AppHistoryLog[], onE
         </div>
     );
 };
+
+// NUEVO COMPONENTE: Control de Fichaje para Empleados
+const StaffControl = ({ staff, currentUser, onUpdateStaff, addNotification }: { staff: Staff[], currentUser: string, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, addNotification: (message: string) => void }) => {
+    const staffMember = staff.find(s => s.name.toLowerCase() === currentUser.toLowerCase());
+
+    if (!staffMember) {
+        return <div style={styles.card}><p>No se encontró tu perfil de empleado. Contacta al administrador.</p></div>;
+    }
+
+    const handleCheckIn = () => {
+        onUpdateStaff(staffMember.id, { checkIn: new Date().toLocaleTimeString('es-ES'), checkOut: '' });
+        addNotification('Has fichado la entrada. ¡Buen trabajo!');
+    };
+
+    const handleCheckOut = () => {
+        onUpdateStaff(staffMember.id, { checkOut: new Date().toLocaleTimeString('es-ES') });
+        addNotification('Has fichado la salida. ¡Hasta pronto!');
+    };
+
+    return (
+        <div style={styles.card}>
+            <h3 style={styles.cardTitle}>Control Horario - {staffMember.name}</h3>
+            <div style={{display: 'flex', justifyContent: 'center', gap: '20px', padding: '20px'}}>
+                <button onClick={handleCheckIn} style={{...styles.actionButton, padding: '20px 40px', fontSize: '18px', backgroundColor: '#28a745'}}><LogIn size={20} style={{marginRight: '10px'}}/> Registrar Entrada</button>
+                <button onClick={handleCheckOut} style={{...styles.actionButton, padding: '20px 40px', fontSize: '18px', backgroundColor: '#dc3545'}}><LogOut size={20} style={{marginRight: '10px'}}/> Registrar Salida</button>
+            </div>
+            <div style={{marginTop: '20px', textAlign: 'center', fontSize: '14px', color: '#6c757d'}}>
+                <p>Última entrada registrada: <strong>{staffMember.checkIn || 'N/A'}</strong></p>
+                <p>Última salida registrada: <strong>{staffMember.checkOut || 'N/A'}</strong></p>
+            </div>
+        </div>
+    );
+}
 
 
 // --- COMPONENTES PRINCIPAL DE LA APLICACIÓN ---
@@ -1595,17 +1628,35 @@ const App = () => {
               const Icon = tab.icon; const isActive = activeTab === tab.id;
               return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
             })}
-            <h2 style={{...styles.sidebarTitle, marginTop: '20px'}}>Administración</h2>
-            {[
-              { id: 'facturacion', name: 'Facturación', icon: FileText },
-              { id: 'penalizaciones', name: 'Penalizaciones', icon: DollarSign },
-              { id: 'personal', name: 'Personal', icon: Briefcase },
-              { id: 'historial', name: 'Historial Web', icon: History },
-              { id: 'configuracion', name: 'Configuración', icon: SettingsIcon },
-            ].map(tab => {
-              const Icon = tab.icon; const isActive = activeTab === tab.id;
-              return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
-            })}
+            
+            {/* VISTA PARA TRABAJADORES */}
+            {['trabajador1', 'trabajador2', 'trabajador3'].includes(currentUser) && (
+              <>
+                <h2 style={{...styles.sidebarTitle, marginTop: '20px'}}>Empleado</h2>
+                <button onClick={() => setActiveTab('control')} style={{...styles.sidebarButton, ...(activeTab === 'control' ? styles.sidebarButtonActive : {})}}>
+                    <UserCog size={20} style={{ marginRight: '12px' }} />
+                    <span>Control</span>
+                </button>
+              </>
+            )}
+
+            {/* VISTA PARA ADMIN (GONZALO) */}
+            {currentUser === 'gonzalo' && (
+              <>
+                <h2 style={{...styles.sidebarTitle, marginTop: '20px'}}>Administración</h2>
+                {[
+                  { id: 'facturacion', name: 'Facturación', icon: FileText },
+                  { id: 'penalizaciones', name: 'Penalizaciones', icon: DollarSign },
+                  { id: 'personal', name: 'Personal', icon: Briefcase },
+                  { id: 'historial', name: 'Historial Web', icon: History },
+                  { id: 'configuracion', name: 'Configuración', icon: SettingsIcon },
+                ].map(tab => {
+                  const Icon = tab.icon; const isActive = activeTab === tab.id;
+                  return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
+                })}
+              </>
+            )}
+
           </div>
           <div>
             <div style={styles.currentUserInfo}>
@@ -1622,7 +1673,7 @@ const App = () => {
 
         <main style={styles.mainContent}>
           <header style={styles.header}>
-            <h1 style={styles.headerTitle}>{activeTab === 'inscripciones' ? 'Nueva Inscripción' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+            <h1 style={styles.headerTitle}>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
           </header>
           <div style={styles.contentArea}>
             {activeTab === 'dashboard' && <Dashboard students={children} attendance={attendance} invoices={invoices} schedules={schedules} config={config} />}
@@ -1630,11 +1681,18 @@ const App = () => {
             {activeTab === 'alumnos' && <StudentList students={children} onSelectChild={setSelectedChild} onDeleteChild={handleDeleteChild} onExport={() => handleExport('alumnos')} />}
             {activeTab === 'asistencia' && <AttendanceManager students={children} attendance={attendance} onSave={handleSaveAttendance} onExport={() => handleExport('asistencia')} />}
             {activeTab === 'calendario' && <Calendar attendance={attendance} />}
-            {activeTab === 'facturacion' && <Invoicing invoices={invoices} onGenerate={generateInvoices} onUpdateStatus={handleUpdateInvoiceStatus} config={config} onExport={() => handleExport('facturacion')} />}
-            {activeTab === 'penalizaciones' && <PenaltiesViewer penalties={penalties} config={config} onExport={() => handleExport('penalizaciones')} onUpdatePenalty={handleUpdatePenalty} onDeletePenalty={handleDeletePenalty} />}
-            {activeTab === 'personal' && <StaffManager staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onExport={() => handleExport('personal')} />}
-            {activeTab === 'historial' && <AppHistoryViewer history={appHistory} onExport={() => handleExport('historial')} />}
-            {activeTab === 'configuracion' && <Settings config={config} onSave={handleSaveConfig} addNotification={addNotification} />}
+            
+            {/* PANELES DE ADMIN */}
+            {currentUser === 'gonzalo' && activeTab === 'facturacion' && <Invoicing invoices={invoices} onGenerate={generateInvoices} onUpdateStatus={handleUpdateInvoiceStatus} config={config} onExport={() => handleExport('facturacion')} />}
+            {currentUser === 'gonzalo' && activeTab === 'penalizaciones' && <PenaltiesViewer penalties={penalties} config={config} onExport={() => handleExport('penalizaciones')} onUpdatePenalty={handleUpdatePenalty} onDeletePenalty={handleDeletePenalty} />}
+            {currentUser === 'gonzalo' && activeTab === 'personal' && <StaffManager staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onExport={() => handleExport('personal')} />}
+            {currentUser === 'gonzalo' && activeTab === 'historial' && <AppHistoryViewer history={appHistory} onExport={() => handleExport('historial')} />}
+            {currentUser === 'gonzalo' && activeTab === 'configuracion' && <Settings config={config} onSave={handleSaveConfig} addNotification={addNotification} />}
+
+            {/* PANEL DE EMPLEADO */}
+            {['trabajador1', 'trabajador2', 'trabajador3'].includes(currentUser) && activeTab === 'control' && (
+                <StaffControl staff={staff} currentUser={currentUser} onUpdateStaff={handleUpdateStaff} addNotification={addNotification} />
+            )}
           </div>
         </main>
       </div>
