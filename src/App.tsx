@@ -780,26 +780,60 @@ const PenaltiesViewer = ({ penalties, config, onExport, onUpdatePenalty, onDelet
     );
 };
 
-const StaffManager = ({ staff, onAddStaff, onUpdateStaff, onExport }: { staff: Staff[], onAddStaff: (newStaff: Omit<Staff, 'id' | 'checkIn' | 'checkOut'>) => void, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, onExport: () => void }) => {
-    const [newStaff, setNewStaff] = useState({name: '', role: '', phone: ''});
-    const handleAdd = (e: React.FormEvent) => { e.preventDefault(); onAddStaff(newStaff); setNewStaff({name: '', role: '', phone: ''}); };
-    const handleCheckIn = (id: string) => onUpdateStaff(id, { checkIn: new Date().toLocaleTimeString(), checkOut: '' });
-    const handleCheckOut = (id: string) => onUpdateStaff(id, { checkOut: new Date().toLocaleTimeString() });
+// --- COMPONENTE "PERSONAL" REHECHO PARA GONZALO ---
+// Muestra el log de fichajes de todos los trabajadores.
+const StaffLogViewer = ({ logs, onExport, staffUsers }: { logs: StaffTimeLog[], onExport: () => void, staffUsers: string[] }) => {
+    const [filterUser, setFilterUser] = useState('');
+    const [filterDate, setFilterDate] = useState('');
+
+    const filteredLogs = logs.filter(log => {
+        const matchUser = !filterUser || log.userName === filterUser;
+        const matchDate = !filterDate || log.date === filterDate;
+        return matchUser && matchDate;
+    }).sort((a, b) => {
+        // Ordenar por fecha (descendente) y luego por hora de entrada (descendente)
+        const dateComparison = b.date.localeCompare(a.date);
+        if (dateComparison !== 0) return dateComparison;
+        return b.checkIn.localeCompare(a.checkIn);
+    });
+
     return (
-        <div style={styles.grid}>
-            <div style={styles.card}><h3 style={styles.cardTitle}>Añadir Personal</h3>
-                <form onSubmit={handleAdd}><input value={newStaff.name} onChange={(e) => setNewStaff({...newStaff, name: e.target.value})} placeholder="Nombre completo" style={styles.formInput} /><input value={newStaff.role} onChange={(e) => setNewStaff({...newStaff, role: e.target.value})} placeholder="Cargo" style={styles.formInput} /><input value={newStaff.phone} onChange={(e) => setNewStaff({...newStaff, phone: e.target.value})} placeholder="Teléfono" style={styles.formInput} /><button type="submit" style={styles.submitButton}>Añadir Empleado</button></form>
-            </div>
-            <div style={styles.card}>
-                 <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                    <h3 style={styles.cardTitle}>Control Horario del Personal</h3>
+        <div style={styles.card}>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px'}}>
+                <h3 style={{...styles.cardTitle, margin: 0}}>Historial de Fichajes del Personal</h3>
+                <div style={{display: 'flex', gap: '10px'}}>
+                    {/* Filtros */}
+                    <select value={filterUser} onChange={(e) => setFilterUser(e.target.value)} style={styles.formInputSmall}>
+                        <option value="">Todos los usuarios</option>
+                        {staffUsers.map(user => <option key={user} value={user}>{user}</option>)}
+                    </select>
+                    <input 
+                        type="date" 
+                        value={filterDate} 
+                        onChange={(e) => setFilterDate(e.target.value)} 
+                        style={styles.formInputSmall} 
+                    />
                     <button onClick={onExport} style={{...styles.actionButton, backgroundColor: '#17a2b8'}}><Download size={16} style={{marginRight: '8px'}} />Exportar</button>
                 </div>
-                <div style={styles.listContainer}>{staff.map(s => (<div key={s.id} style={styles.listItem}><div><p style={styles.listItemName}>{s.name}</p><p style={styles.listItemInfo}>{s.role}</p></div><div style={{display: 'flex', gap: '10px'}}><button onClick={() => handleCheckIn(s.id)} style={styles.pillSuccess}>Entrada</button><button onClick={() => handleCheckOut(s.id)} style={styles.pillWarning}>Salida</button></div></div>))}</div>
+            </div>
+            <div style={styles.listContainer}>
+                {filteredLogs.length > 0 ? filteredLogs.map(log => (
+                    <div key={log.id} style={styles.listItem}>
+                        <div>
+                            <p style={styles.listItemName}>{log.userName}</p>
+                            <p style={styles.listItemInfo}>Fecha: {log.date}</p>
+                        </div>
+                        <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
+                            <span style={styles.pillSuccess}>Entrada: {log.checkIn}</span>
+                            <span style={styles.pillWarning}>{log.checkOut ? `Salida: ${log.checkOut}` : 'Salida Pendiente'}</span>
+                        </div>
+                    </div>
+                )) : <p>No hay registros de fichaje que coincidan con los filtros.</p>}
             </div>
         </div>
     );
 };
+
 
 const Settings = ({ config, onSave, addNotification }: { config: Config, onSave: (config: Config) => void, addNotification: (message: string) => void }) => {
     const [localConfig, setLocalConfig] = useState(config);
@@ -916,7 +950,7 @@ const AppHistoryViewer = ({ history, onExport }: { history: AppHistoryLog[], onE
     );
 };
 
-// --- NUEVO COMPONENTE: PANEL DE CONTROL DE FICHAJE ---
+// --- COMPONENTE: PANEL DE CONTROL DE FICHAJE (PARA TRABAJADORES) ---
 const StaffControlPanel = ({ currentUser, todayLog, onCheckIn, onCheckOut }: {
     currentUser: string;
     todayLog: StaffTimeLog | undefined;
@@ -989,9 +1023,9 @@ const App = () => {
   const [childForm, setChildForm] = useState<StudentFormData>({ name: '', surname: '', birthDate: '', address: '', fatherName: '', motherName: '', phone1: '', phone2: '', parentEmail: '', schedule: '', allergies: '', authorizedPickup: '', enrollmentPaid: false, monthlyPayment: true, paymentMethod: '', accountHolderName: '', nif: '', startMonth: '', plannedEndMonth: '' });
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]);
+  const [staff, setStaff] = useState<Staff[]>([]); // Esto ahora solo sirve para la lista de Staff, no para el fichaje
   const [appHistory, setAppHistory] = useState<AppHistoryLog[]>([]);
-  const [staffTimeLogs, setStaffTimeLogs] = useState<StaffTimeLog[]>([]); // NUEVO ESTADO PARA FICHAJES
+  const [staffTimeLogs, setStaffTimeLogs] = useState<StaffTimeLog[]>([]); // ESTADO PARA FICHAJES
 
   const schedules: Schedule[] = [
     { id: 'h_305', name: 'Cuota 305€', price: 305, endTime: '12:00' },
@@ -1037,7 +1071,7 @@ const App = () => {
       { name: 'penalties', setter: setPenalties },
       { name: 'invoices', setter: setInvoices },
       { name: 'appHistory', setter: setAppHistory },
-      { name: 'staffTimeLog', setter: setStaffTimeLogs }, // AÑADIDO NUEVO LISTENER
+      { name: 'staffTimeLog', setter: setStaffTimeLogs }, // LISTENER DE FICHAJES
   ];
 
   useEffect(() => {
@@ -1153,13 +1187,13 @@ const App = () => {
                 Motivo: p.reason
             }));
             break;
-        case 'personal': 
-            dataToExport = staff.map(s => ({
-                Nombre: s.name,
-                Cargo: s.role,
-                Telefono: s.phone,
-                Hora_Entrada: s.checkIn,
-                Hora_Salida: s.checkOut
+        // NUEVO CASE DE EXPORTACIÓN PARA FICHAJES
+        case 'fichajes':
+             dataToExport = staffTimeLogs.map(log => ({
+                Usuario: log.userName,
+                Fecha: log.date,
+                Entrada: log.checkIn,
+                Salida: log.checkOut
             }));
             break;
         case 'historial': 
@@ -1428,31 +1462,6 @@ const App = () => {
             addNotification("Error al eliminar la penalización.");
         }
     };
-    
-    const handleAddStaff = async (staffData: Omit<Staff, 'id' | 'checkIn' | 'checkOut'>) => {
-        if (!userId) return;
-        const newStaffData = { ...staffData, checkIn: '', checkOut: ''};
-        try {
-            const staffCollectionPath = `/artifacts/${appId}/public/data/staff`;
-            await addDoc(collection(db, staffCollectionPath), newStaffData);
-            addNotification("Nuevo miembro de personal añadido.");
-        } catch (error) {
-            console.error("Error adding staff: ", error);
-            addNotification("Error al añadir personal.");
-        }
-    };
-    
-    const handleUpdateStaff = async (staffId: string, updates: Partial<Staff>) => {
-        if (!userId) return;
-        try {
-            const staffDocPath = `/artifacts/${appId}/public/data/staff/${staffId}`;
-            await updateDoc(doc(db, staffDocPath), updates);
-            addNotification("Registro horario del personal actualizado.");
-        } catch (error) {
-            console.error("Error updating staff: ", error);
-            addNotification("Error al actualizar personal.");
-        }
-    };
 
     const handleSaveConfig = async (newConfig: Config) => {
         if (!userId) return;
@@ -1465,7 +1474,7 @@ const App = () => {
         }
     };
     
-    // --- NUEVAS FUNCIONES DE FICHAJE ---
+    // --- FUNCIONES DE FICHAJE ---
     const handleStaffCheckIn = async () => {
         if (!userId || !currentUser) return;
         
@@ -1515,7 +1524,7 @@ const App = () => {
         }
     };
 
-    // --- FIN NUEVAS FUNCIONES DE FICHAJE ---
+    // --- FIN FUNCIONES DE FICHAJE ---
 
 
     const handleGenerateAndExportInvoice = async (student: Student) => {
@@ -1646,9 +1655,12 @@ const App = () => {
 
   // --- RENDERIZADO PRINCIPAL ---
 
-  // Obtener el registro de fichaje de HOY para el usuario actual (para el nuevo panel)
+  // Obtener el registro de fichaje de HOY para el usuario actual (para el panel de fichaje)
   const todayStr = new Date().toISOString().split('T')[0];
   const todayLog = staffTimeLogs.find(log => log.userName === currentUser && log.date === todayStr && log.checkIn); // Busca el log de hoy que tenga checkIn
+
+  // Obtener lista de usuarios únicos de los logs para el filtro de Gonzalo
+  const staffUsersList = [...new Set(staffTimeLogs.map(log => log.userName))];
 
   if (isLoading) return <LoadingSpinner />;
   if (!isLoggedIn) return <LoginScreen onLogin={handleLogin} />;
@@ -1707,8 +1719,6 @@ const App = () => {
             <h2 style={styles.sidebarTitle}>General</h2>
             {[
               { id: 'dashboard', name: 'Panel de Control', icon: BarChart2 },
-              // Añadida la pestaña de Control (solo si NO es gonzalo)
-              ...(currentUser !== 'gonzalo' ? [{ id: 'control', name: 'Control Horario', icon: UserCheck }] : []),
               { id: 'inscripciones', name: 'Nueva Inscripción', icon: UserPlus },
               { id: 'alumnos', name: 'Alumnos', icon: Users },
               { id: 'asistencia', name: 'Asistencia', icon: Clock },
@@ -1728,11 +1738,18 @@ const App = () => {
               return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
             })}
 
-            {/* Pestañas de Admin Restringidas solo a 'gonzalo' */}
+            {/* Pestaña de Fichaje (SOLO TRABAJADORES) */}
+            {currentUser !== 'gonzalo' && (
+                <button key='control' onClick={() => setActiveTab('control')} style={{...styles.sidebarButton, ...(activeTab === 'control' ? styles.sidebarButtonActive : {})}}>
+                    <UserCheck size={20} style={{ marginRight: '12px' }} /><span>Control Horario</span>
+                </button>
+            )}
+
+            {/* Pestañas de Admin Restringidas (SOLO GONZALO) */}
             {currentUser === 'gonzalo' && (
               <>
                 {[
-                  { id: 'personal', name: 'Personal', icon: Briefcase },
+                  { id: 'personal', name: 'Personal', icon: Briefcase }, // Esta pestaña ahora renderizará StaffLogViewer
                   { id: 'historial', name: 'Historial Web', icon: History },
                   { id: 'configuracion', name: 'Configuración', icon: SettingsIcon },
                 ].map(tab => {
@@ -1763,15 +1780,16 @@ const App = () => {
           </header>
           <div style={styles.contentArea}>
             {activeTab === 'dashboard' && <Dashboard students={children} attendance={attendance} invoices={invoices} schedules={schedules} config={config} />}
-            {/* AÑADIDO RENDER DEL NUEVO COMPONENTE */}
+            {/* RENDER PANELES DE CONTROL / PERSONAL */}
             {activeTab === 'control' && <StaffControlPanel currentUser={currentUser} todayLog={todayLog} onCheckIn={handleStaffCheckIn} onCheckOut={handleStaffCheckOut} />}
+            {activeTab === 'personal' && <StaffLogViewer logs={staffTimeLogs} onExport={() => handleExport('fichajes')} staffUsers={staffUsersList} />}
+
             {activeTab === 'inscripciones' && <NewStudentForm onAddChild={handleAddChild} childForm={childForm} onFormChange={setChildForm} schedules={schedules} />}
             {activeTab === 'alumnos' && <StudentList students={children} onSelectChild={setSelectedChild} onDeleteChild={handleDeleteChild} onExport={() => handleExport('alumnos')} />}
             {activeTab === 'asistencia' && <AttendanceManager students={children} attendance={attendance} onSave={handleSaveAttendance} onExport={() => handleExport('asistencia')} />}
             {activeTab === 'calendario' && <Calendar attendance={attendance} />}
             {activeTab === 'facturacion' && <Invoicing invoices={invoices} onGenerate={generateInvoices} onUpdateStatus={handleUpdateInvoiceStatus} config={config} onExport={() => handleExport('facturacion')} />}
             {activeTab === 'penalizaciones' && <PenaltiesViewer penalties={penalties} config={config} onExport={() => handleExport('penalizaciones')} onUpdatePenalty={handleUpdatePenalty} onDeletePenalty={handleDeletePenalty} />}
-            {activeTab === 'personal' && <StaffManager staff={staff} onAddStaff={handleAddStaff} onUpdateStaff={handleUpdateStaff} onExport={() => handleExport('personal')} />}
             {activeTab === 'historial' && <AppHistoryViewer history={appHistory} onExport={() => handleExport('historial')} />}
             {activeTab === 'configuracion' && <Settings config={config} onSave={handleSaveConfig} addNotification={addNotification} />}
           </div>
@@ -1844,7 +1862,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   dayCount: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '10px', fontSize: '16px', color: '#343a40', fontWeight: '600' },
   eventsContainer: { marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '4px' },
   eventPill: { padding: '3px 6px', borderRadius: '4px', fontSize: '11px', backgroundColor: '#e9f3ff', color: '#004085', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  penaltyPill: { padding: '3px 6px', borderRadius: '4px', fontSize: '11px', backgroundColor: '#fff3cd', color: '#856404', marginTop: '4px', display: 'flex', alignItems: 'center' },
+  penaltyPill: { padding: '3rdx 6px', borderRadius: '4px', fontSize: '11px', backgroundColor: '#fff3cd', color: '#856404', marginTop: '4px', display: 'flex', alignItems: 'center' },
   attendancePill: { padding: '3px 6px', borderRadius: '4px', fontSize: '11px', backgroundColor: '#e9f3ff', color: '#004085' },
   attendanceItem: { padding: '15px 5px', borderBottom: '1px solid #f1f3f5' },
   attendanceGrid: { display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1.5fr auto', gap: '10px', alignItems: 'center', marginTop: '10px' },
