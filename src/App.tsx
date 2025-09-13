@@ -63,6 +63,14 @@ type Attendance = { id: string; childId: number; childName: string; date: string
 type Penalty = { id: string; childId: number; childName: string; date: string; amount: number; reason: string; };
 type Invoice = { id: string; numericId: number; childId: number; childName: string; date: string; amount: number; base: number; penalties: number; enrollmentFeeIncluded: boolean; status: 'Pendiente' | 'Pagada' | 'Vencida'; };
 type Staff = { id: string; name: string; role: string; phone: string; checkIn: string; checkOut: string; };
+// NUEVO TIPO PARA EL REGISTRO DE FICHAJES
+type StaffTimeLog = {
+  id: string;
+  userName: string;
+  date: string;
+  checkIn: string;
+  checkOut: string;
+};
 type Config = { centerName: string; currency: string; lateFee: number; };
 type NotificationMessage = { id: number; message: string; };
 type StudentFormData = Omit<Student, 'id' | 'numericId'|'paymentMethod' | 'documents' | 'modificationHistory'> & { paymentMethod: Student['paymentMethod'] | ''; accountHolderName: string; };
@@ -908,6 +916,56 @@ const AppHistoryViewer = ({ history, onExport }: { history: AppHistoryLog[], onE
     );
 };
 
+// --- NUEVO COMPONENTE: PANEL DE CONTROL DE FICHAJE ---
+const StaffControlPanel = ({ currentUser, todayLog, onCheckIn, onCheckOut }: {
+    currentUser: string;
+    todayLog: StaffTimeLog | undefined;
+    onCheckIn: () => void;
+    onCheckOut: () => void;
+}) => {
+
+    const hasCheckedIn = todayLog && todayLog.checkIn;
+    const hasCheckedOut = todayLog && todayLog.checkOut;
+
+    return (
+        <div style={styles.card}>
+            <h3 style={styles.cardTitle}>Control Horario: {currentUser}</h3>
+            <p style={{textAlign: 'center', fontSize: '18px', margin: '20px 0'}}>Fecha: {new Date().toLocaleDateString('es-ES')}</p>
+            
+            <div style={{display: 'flex', justifyContent: 'center', gap: '30px', marginTop: '30px'}}>
+                <button 
+                    onClick={onCheckIn} 
+                    disabled={!!hasCheckedIn} 
+                    style={{
+                        ...styles.submitButton, 
+                        width: '200px', 
+                        backgroundColor: hasCheckedIn ? '#6c757d' : '#28a745',
+                        cursor: hasCheckedIn ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    <LogIn size={18} style={{marginRight: '10px'}} /> 
+                    {hasCheckedIn ? `Entrada: ${todayLog.checkIn}` : 'Registrar ENTRADA'}
+                </button>
+                
+                <button 
+                    onClick={onCheckOut} 
+                    disabled={!hasCheckedIn || !!hasCheckedOut}
+                    style={{
+                        ...styles.submitButton, 
+                        width: '200px', 
+                        backgroundColor: !hasCheckedIn ? '#6c757d' : (hasCheckedOut ? '#6c757d' : '#dc3545'),
+                        cursor: !hasCheckedIn || !!hasCheckedOut ? 'not-allowed' : 'pointer'
+                    }}
+                >
+                    <LogOut size={18} style={{marginRight: '10px'}} /> 
+                    {hasCheckedOut ? `Salida: ${todayLog.checkOut}` : 'Registrar SALIDA'}
+                </button>
+            </div>
+            {hasCheckedOut && <p style={{textAlign: 'center', color: '#28a745', marginTop: '30px', fontSize: '18px'}}>Jornada completada. ¡Gracias!</p>}
+        </div>
+    );
+};
+
 
 // --- COMPONENTES PRINCIPAL DE LA APLICACIÓN ---
 const App = () => {
@@ -933,6 +991,7 @@ const App = () => {
   const [penalties, setPenalties] = useState<Penalty[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [appHistory, setAppHistory] = useState<AppHistoryLog[]>([]);
+  const [staffTimeLogs, setStaffTimeLogs] = useState<StaffTimeLog[]>([]); // NUEVO ESTADO PARA FICHAJES
 
   const schedules: Schedule[] = [
     { id: 'h_305', name: 'Cuota 305€', price: 305, endTime: '12:00' },
@@ -978,6 +1037,7 @@ const App = () => {
       { name: 'penalties', setter: setPenalties },
       { name: 'invoices', setter: setInvoices },
       { name: 'appHistory', setter: setAppHistory },
+      { name: 'staffTimeLog', setter: setStaffTimeLogs }, // AÑADIDO NUEVO LISTENER
   ];
 
   useEffect(() => {
@@ -1405,6 +1465,59 @@ const App = () => {
         }
     };
     
+    // --- NUEVAS FUNCIONES DE FICHAJE ---
+    const handleStaffCheckIn = async () => {
+        if (!userId || !currentUser) return;
+        
+        const todayStr = new Date().toISOString().split('T')[0];
+        const checkInTime = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+        const newLog: Omit<StaffTimeLog, 'id'> = {
+            userName: currentUser,
+            date: todayStr,
+            checkIn: checkInTime,
+            checkOut: '', // Se deja vacío
+        };
+
+        try {
+            const logCollectionPath = `/artifacts/${appId}/public/data/staffTimeLog`;
+            await addDoc(collection(db, logCollectionPath), newLog);
+            addNotification(`Entrada registrada a las ${checkInTime}.`);
+            addAppHistoryLog(currentUser, 'Fichaje', `Ha registrado la entrada.`);
+        } catch (error) {
+            console.error("Error clocking in: ", error);
+            addNotification("Error al registrar la entrada.");
+        }
+    };
+
+    const handleStaffCheckOut = async () => {
+        if (!userId || !currentUser) return;
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const checkOutTime = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+        // Encontrar el registro de ENTRADA de HOY para este usuario QUE AÚN NO TENGA SALIDA
+        const todayLog = staffTimeLogs.find(log => log.userName === currentUser && log.date === todayStr && log.checkIn && !log.checkOut);
+
+        if (!todayLog) {
+            addNotification("Error: Debes registrar la ENTRADA antes de la SALIDA.");
+            return;
+        }
+
+        try {
+            const logDocPath = `/artifacts/${appId}/public/data/staffTimeLog/${todayLog.id}`;
+            await updateDoc(doc(db, logDocPath), { checkOut: checkOutTime });
+            addNotification(`Salida registrada a las ${checkOutTime}.`);
+            addAppHistoryLog(currentUser, 'Fichaje', `Ha registrado la salida.`);
+        } catch (error) {
+            console.error("Error clocking out: ", error);
+            addNotification("Error al registrar la salida.");
+        }
+    };
+
+    // --- FIN NUEVAS FUNCIONES DE FICHAJE ---
+
+
     const handleGenerateAndExportInvoice = async (student: Student) => {
         const month = new Date().getMonth();
         const year = new Date().getFullYear();
@@ -1532,6 +1645,11 @@ const App = () => {
     };
 
   // --- RENDERIZADO PRINCIPAL ---
+
+  // Obtener el registro de fichaje de HOY para el usuario actual (para el nuevo panel)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todayLog = staffTimeLogs.find(log => log.userName === currentUser && log.date === todayStr && log.checkIn); // Busca el log de hoy que tenga checkIn
+
   if (isLoading) return <LoadingSpinner />;
   if (!isLoggedIn) return <LoginScreen onLogin={handleLogin} />;
 
@@ -1584,9 +1702,13 @@ const App = () => {
         <aside style={styles.sidebar}>
           <div>
             <div style={{ padding: '20px 15px', display: 'flex', justifyContent: 'center' }}><MiPequenoRecreoLogo width={180}/></div>
+            
+            {/* --- INICIO DE MODIFICACIÓN SIDEBAR --- */}
             <h2 style={styles.sidebarTitle}>General</h2>
             {[
               { id: 'dashboard', name: 'Panel de Control', icon: BarChart2 },
+              // Añadida la pestaña de Control (solo si NO es gonzalo)
+              ...(currentUser !== 'gonzalo' ? [{ id: 'control', name: 'Control Horario', icon: UserCheck }] : []),
               { id: 'inscripciones', name: 'Nueva Inscripción', icon: UserPlus },
               { id: 'alumnos', name: 'Alumnos', icon: Users },
               { id: 'asistencia', name: 'Asistencia', icon: Clock },
@@ -1596,7 +1718,6 @@ const App = () => {
               return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
             })}
 
-            {/* --- INICIO DE LA MODIFICACIÓN --- */}
             <h2 style={{...styles.sidebarTitle, marginTop: '20px'}}>Administración</h2>
             {/* Pestañas de Admin Públicas */}
             {[
@@ -1620,7 +1741,7 @@ const App = () => {
                 })}
               </>
             )}
-            {/* --- FIN DE LA MODIFICACIÓN --- */}
+            {/* --- FIN DE MODIFICACIÓN SIDEBAR --- */}
 
           </div>
           <div>
@@ -1638,10 +1759,12 @@ const App = () => {
 
         <main style={styles.mainContent}>
           <header style={styles.header}>
-            <h1 style={styles.headerTitle}>{activeTab === 'inscripciones' ? 'Nueva Inscripción' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
+            <h1 style={styles.headerTitle}>{activeTab === 'inscripciones' ? 'Nueva Inscripción' : activeTab === 'control' ? 'Control Horario' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h1>
           </header>
           <div style={styles.contentArea}>
             {activeTab === 'dashboard' && <Dashboard students={children} attendance={attendance} invoices={invoices} schedules={schedules} config={config} />}
+            {/* AÑADIDO RENDER DEL NUEVO COMPONENTE */}
+            {activeTab === 'control' && <StaffControlPanel currentUser={currentUser} todayLog={todayLog} onCheckIn={handleStaffCheckIn} onCheckOut={handleStaffCheckOut} />}
             {activeTab === 'inscripciones' && <NewStudentForm onAddChild={handleAddChild} childForm={childForm} onFormChange={setChildForm} schedules={schedules} />}
             {activeTab === 'alumnos' && <StudentList students={children} onSelectChild={setSelectedChild} onDeleteChild={handleDeleteChild} onExport={() => handleExport('alumnos')} />}
             {activeTab === 'asistencia' && <AttendanceManager students={children} attendance={attendance} onSave={handleSaveAttendance} onExport={() => handleExport('asistencia')} />}
@@ -1702,7 +1825,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   formGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' },
   formInput: { display: 'block', width: '100%', boxSizing: 'border-box', padding: '12px 10px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px', marginBottom: '10px' },
   checkboxLabel: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' },
-  submitButton: { width: '100%', padding: '12px', border: 'none', borderRadius: '6px', backgroundColor: '#007bff', color: 'white', fontSize: '16px', cursor: 'pointer', marginTop: '10px' },
+  submitButton: { width: '100%', padding: '12px', border: 'none', borderRadius: '6px', backgroundColor: '#007bff', color: 'white', fontSize: '16px', cursor: 'pointer', marginTop: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   deleteButton: { backgroundColor: 'rgba(220, 53, 69, 0.1)', color: '#dc3545', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' },
   modalBackdrop: { position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
   modalContent: { backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '700px', boxShadow: '0 5px 15px rgba(0,0,0,0.3)', position: 'relative' },
