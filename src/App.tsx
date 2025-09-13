@@ -62,7 +62,6 @@ type Student = {
 type Attendance = { id: string; childId: number; childName: string; date: string; entryTime?: string; exitTime?: string; droppedOffBy?: string; pickedUpBy?: string; };
 type Penalty = { id: string; childId: number; childName: string; date: string; amount: number; reason: string; };
 type Invoice = { id: string; numericId: number; childId: number; childName: string; date: string; amount: number; base: number; penalties: number; enrollmentFeeIncluded: boolean; status: 'Pendiente' | 'Pagada' | 'Vencida'; };
-// type Staff = { id: string; name: string; role: string; phone: string; checkIn: string; checkOut: string; }; // ELIMINADO (NO USADO)
 // NUEVO TIPO PARA EL REGISTRO DE FICHAJES
 type StaffTimeLog = {
   id: string;
@@ -544,27 +543,75 @@ const Dashboard = ({ students, attendance, invoices, schedules, config }: { stud
     const presentToday = attendance.filter(a => a.date === todayStr).length;
     const monthlyBilling = invoices.filter(inv => new Date(inv.date).getMonth() === new Date().getMonth()).reduce((sum, inv) => sum + inv.amount, 0);
     const upcomingBirthdays = students.filter(s => { const d = new Date(s.birthDate); d.setFullYear(new Date().getFullYear()); const diff = d.getTime() - new Date().getTime(); return diff > 0 && diff < 2.6e9; });
+    
+    // Gráfica de Asistencia (datos de ejemplo)
     const attendanceChartData: ChartData<'bar'> = { labels: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie'], datasets: [{ label: 'Asistencia Semanal', data: [1, 2, 3, 2, 3], backgroundColor: 'rgba(0, 123, 255, 0.5)', borderColor: '#007bff', borderWidth: 1, borderRadius: 4 }] };
+    
+    // Gráfica de Ocupación
     const scheduleCounts = students.reduce((acc, child) => { acc[child.schedule] = (acc[child.schedule] || 0) + 1; return acc; }, {} as Record<string, number>);
-    const occupancyChartData: ChartData<'doughnut'> = { labels: schedules.map(s => s.name), datasets: [{ label: 'Ocupación', data: schedules.map(s => scheduleCounts[s.id] || 0), backgroundColor: ['#007bff', '#17a2b8', '#ffc107', '#28a745', '#dc3545', '#6c757d', '#343a40'], borderWidth: 0 }] };
+    const scheduleLabels = schedules.map(s => s.name);
+    const scheduleData = schedules.map(s => scheduleCounts[s.id] || 0);
+
+    // NUEVA PALETA DE COLORES (R1)
+    const distinctColors = [
+        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', 
+        '#E6194B', '#3CB44B', '#FFE119', '#4363D8', '#F58231', '#911EB4', 
+        '#46F0F0', '#F032E6', '#BCF60C', '#FABEBE', '#008080', '#E6BEFF', 
+        '#9A6324', '#FFFAC8', '#800000', '#AAFFC3', '#808000', '#FFD8B1', 
+        '#000075', '#A9A9A9', '#FFFFFF', '#000000'
+    ];
+
+
+    const occupancyChartData: ChartData<'doughnut'> = { 
+        labels: scheduleLabels, 
+        datasets: [{ 
+            label: 'Ocupación', 
+            data: scheduleData, 
+            backgroundColor: distinctColors.slice(0, schedules.length), 
+            borderWidth: 0 
+        }] 
+    };
+
+    // NUEVA GRÁFICA: Métodos de Pago (R2)
+    const paymentMethodCounts = students.reduce((acc, student) => {
+        const method = student.paymentMethod || 'No especificado';
+        acc[method] = (acc[method] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const paymentChartData: ChartData<'doughnut'> = {
+        labels: Object.keys(paymentMethodCounts),
+        datasets: [{
+            label: 'Método de Pago',
+            data: Object.values(paymentMethodCounts),
+            backgroundColor: ['#007bff', '#28a745', '#ffc107'], // Colores simples para 3 opciones
+            borderWidth: 0
+        }]
+    };
+
     const chartOptions: ChartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } };
+    const doughnutChartOptions: ChartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, padding: 20 } } } };
+
     return (
         <div>
             <div style={styles.dashboardGrid}>
                 <div style={styles.statCard}><UserCheck size={28} style={{color: '#28a745'}}/><div><p style={styles.statCardText}>Alumnos Hoy</p><span style={styles.statCardNumber}>{presentToday} / {students.length}</span></div></div>
                 <div style={styles.statCard}><DollarSign size={28} style={{color: '#007bff'}}/><div><p style={styles.statCardText}>Facturación del Mes</p><span style={styles.statCardNumber}>{monthlyBilling.toFixed(2)}{config.currency}</span></div></div>
                 <div style={styles.statCard}><Cake size={28} style={{color: '#ffc107'}}/><div><p style={styles.statCardText}>Próximos Cumpleaños</p><span style={styles.statCardNumber}>{upcomingBirthdays.length}</span></div></div>
+                {/* LOGO MODIFICADO (R3) */}
                 <div style={{...styles.statCard, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px'}}>
-                    <img src={webeaLogo} alt="Logo Webea" style={{ width: '100px', marginBottom: '8px', filter: 'invert(1)' }} />
+                    <img src={webeaLogo} alt="Logo Webea" style={{ width: '150px', marginBottom: '8px' }} />
                     <p style={{margin: 0, fontSize: '12px', color: '#6c757d'}}>Desarrollado por Webea</p>
                     <p style={{margin: '4px 0 0 0', fontSize: '12px'}}>
                         <span style={{fontWeight: '500'}}>Soporte:</span> webea.oficial@gmail.com
                     </p>
                 </div>
             </div>
-            <div style={{...styles.grid, marginTop: '30px'}}>
+            {/* RENDER DE NUEVA GRÁFICA (R2) */}
+            <div style={{...styles.grid, gridTemplateColumns: '1fr 1fr 1fr', marginTop: '30px'}}>
                 <div style={styles.card}><h3 style={styles.cardTitle}>Asistencia Última Semana</h3><ChartComponent type="bar" data={attendanceChartData} options={chartOptions} /></div>
-                <div style={styles.card}><h3 style={styles.cardTitle}>Ocupación por Horario</h3><ChartComponent type="doughnut" data={occupancyChartData} options={{...chartOptions, plugins: { legend: { display: true, position: 'bottom' }}}} /></div>
+                <div style={styles.card}><h3 style={styles.cardTitle}>Ocupación por Horario</h3><ChartComponent type="doughnut" data={occupancyChartData} options={doughnutChartOptions} /></div>
+                <div style={styles.card}><h3 style={styles.cardTitle}>Métodos de Pago</h3><ChartComponent type="doughnut" data={paymentChartData} options={doughnutChartOptions} /></div>
             </div>
         </div>
     );
@@ -780,22 +827,48 @@ const PenaltiesViewer = ({ penalties, config, onExport, onUpdatePenalty, onDelet
     );
 };
 
-// --- COMPONENTE "PERSONAL" REHECHO PARA GONZALO ---
-// Muestra el log de fichajes de todos los trabajadores.
-const StaffLogViewer = ({ logs, onExport, staffUsers }: { logs: StaffTimeLog[], onExport: () => void, staffUsers: string[] }) => {
+// --- COMPONENTE "PERSONAL" REHECHO PARA GONZALO (R4) ---
+// Muestra el log de fichajes de todos los trabajadores CON EDICIÓN.
+const StaffLogViewer = ({ logs, onExport, staffUsers, onUpdateStaffTimeLog }: { 
+    logs: StaffTimeLog[], 
+    onExport: () => void, 
+    staffUsers: string[],
+    onUpdateStaffTimeLog: (logId: string, updatedData: Partial<StaffTimeLog>) => void 
+}) => {
     const [filterUser, setFilterUser] = useState('');
     const [filterDate, setFilterDate] = useState('');
+
+    // Estado para la edición en línea
+    const [editingLogId, setEditingLogId] = useState<string | null>(null);
+    const [editCheckIn, setEditCheckIn] = useState('');
+    const [editCheckOut, setEditCheckOut] = useState('');
 
     const filteredLogs = logs.filter(log => {
         const matchUser = !filterUser || log.userName === filterUser;
         const matchDate = !filterDate || log.date === filterDate;
         return matchUser && matchDate;
     }).sort((a, b) => {
-        // Ordenar por fecha (descendente) y luego por hora de entrada (descendente)
         const dateComparison = b.date.localeCompare(a.date);
         if (dateComparison !== 0) return dateComparison;
         return b.checkIn.localeCompare(a.checkIn);
     });
+
+    // Handlers para edición
+    const handleEditClick = (log: StaffTimeLog) => {
+        setEditingLogId(log.id);
+        setEditCheckIn(log.checkIn);
+        setEditCheckOut(log.checkOut || ''); // Asegurarse de que no sea null
+    };
+
+    const handleSaveEdit = (logId: string) => {
+        onUpdateStaffTimeLog(logId, { checkIn: editCheckIn, checkOut: editCheckOut });
+        setEditingLogId(null);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingLogId(null);
+    };
+
 
     return (
         <div style={styles.card}>
@@ -823,10 +896,33 @@ const StaffLogViewer = ({ logs, onExport, staffUsers }: { logs: StaffTimeLog[], 
                             <p style={styles.listItemName}>{log.userName}</p>
                             <p style={styles.listItemInfo}>Fecha: {log.date}</p>
                         </div>
-                        <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
-                            <span style={styles.pillSuccess}>Entrada: {log.checkIn}</span>
-                            <span style={styles.pillWarning}>{log.checkOut ? `Salida: ${log.checkOut}` : 'Salida Pendiente'}</span>
-                        </div>
+
+                        {editingLogId === log.id ? (
+                            // VISTA DE EDICIÓN
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                <input
+                                    type="time"
+                                    value={editCheckIn}
+                                    onChange={(e) => setEditCheckIn(e.target.value)}
+                                    style={{ ...styles.formInputSmall, width: '100px' }}
+                                />
+                                <input
+                                    type="time"
+                                    value={editCheckOut}
+                                    onChange={(e) => setEditCheckOut(e.target.value)}
+                                    style={{ ...styles.formInputSmall, width: '100px' }}
+                                />
+                                <button onClick={() => handleSaveEdit(log.id)} style={{...styles.actionButton, backgroundColor: '#28a745', padding: '6px 10px'}} title="Guardar"><Save size={14}/></button>
+                                <button onClick={handleCancelEdit} style={{...styles.actionButton, backgroundColor: '#6c757d', padding: '6px 10px'}} title="Cancelar"><X size={14}/></button>
+                            </div>
+                        ) : (
+                            // VISTA NORMAL
+                            <div style={{display: 'flex', gap: '20px', alignItems: 'center'}}>
+                                <span style={styles.pillSuccess}>Entrada: {log.checkIn}</span>
+                                <span style={styles.pillWarning}>{log.checkOut ? `Salida: ${log.checkOut}` : 'Salida Pendiente'}</span>
+                                <button onClick={() => handleEditClick(log)} style={{...styles.actionButton, backgroundColor: '#ffc107', padding: '6px 10px'}} title="Editar"><Edit size={14}/></button>
+                            </div>
+                        )}
                     </div>
                 )) : <p>No hay registros de fichaje que coincidan con los filtros.</p>}
             </div>
@@ -1023,7 +1119,6 @@ const App = () => {
   const [childForm, setChildForm] = useState<StudentFormData>({ name: '', surname: '', birthDate: '', address: '', fatherName: '', motherName: '', phone1: '', phone2: '', parentEmail: '', schedule: '', allergies: '', authorizedPickup: '', enrollmentPaid: false, monthlyPayment: true, paymentMethod: '', accountHolderName: '', nif: '', startMonth: '', plannedEndMonth: '' });
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
-  // const [staff, setStaff] = useState<Staff[]>([]); // <-- ESTADO ELIMINADO (NO USADO)
   const [appHistory, setAppHistory] = useState<AppHistoryLog[]>([]);
   const [staffTimeLogs, setStaffTimeLogs] = useState<StaffTimeLog[]>([]); // ESTADO PARA FICHAJES
 
@@ -1066,7 +1161,6 @@ const App = () => {
   // --- LISTENERS DE FIREBASE PARA DATOS EN TIEMPO REAL ---
   const dataListeners = [
       { name: 'children', setter: setChildren },
-      // { name: 'staff', setter: setStaff }, // <-- LISTENER ELIMINADO
       { name: 'attendance', setter: setAttendance },
       { name: 'penalties', setter: setPenalties },
       { name: 'invoices', setter: setInvoices },
@@ -1187,8 +1281,6 @@ const App = () => {
                 Motivo: p.reason
             }));
             break;
-        // CASE 'personal' ELIMINADO
-        // NUEVO CASE DE EXPORTACIÓN PARA FICHAJES
         case 'fichajes':
              dataToExport = staffTimeLogs.map(log => ({
                 Usuario: log.userName,
@@ -1525,7 +1617,19 @@ const App = () => {
         }
     };
 
-    // --- FIN FUNCIONES DE FICHAJE ---
+    // --- NUEVA FUNCIÓN PARA QUE GONZALO EDITE FICHAJES (R4) ---
+    const handleUpdateStaffTimeLog = async (logId: string, updatedData: Partial<StaffTimeLog>) => {
+        if (!userId) return;
+        const logDocPath = `/artifacts/${appId}/public/data/staffTimeLog/${logId}`;
+        try {
+            await updateDoc(doc(db, logDocPath), updatedData);
+            addNotification("Registro de fichaje actualizado.");
+            addAppHistoryLog(currentUser, 'Admin Fichaje', `Modificado registro ${logId}.`);
+        } catch (error) {
+            console.error("Error updating time log: ", error);
+            addNotification("Error al actualizar el fichaje.");
+        }
+    };
 
 
     const handleGenerateAndExportInvoice = async (student: Student) => {
@@ -1543,14 +1647,16 @@ const App = () => {
             const childPenalties = penalties.filter(p => p.childId === student.numericId && new Date(p.date).getMonth() === month && new Date(p.date).getFullYear() === year);
             const totalPenalties = childPenalties.reduce((sum, p) => sum + p.amount, 0);
             let totalAmount = schedule.price + totalPenalties;
-            let enrollmentFeeApplied = !student.enrollmentPaid;
-            if (enrollmentFeeApplied) {
+            let enrollmentFeeApplied = false;
+            
+            if (!child.enrollmentPaid) { 
                 totalAmount += 100;
+                enrollmentFeeApplied = true;
             }
 
             const newInvoiceData: Omit<Invoice, 'id'> = {
                 numericId: Date.now() + student.numericId,
-                childId: student.numericId,
+                childId: child.numericId,
                 childName: `${student.name} ${student.surname}`,
                 date: new Date().toISOString().split('T')[0],
                 amount: totalAmount,
@@ -1658,7 +1764,7 @@ const App = () => {
 
   // Obtener el registro de fichaje de HOY para el usuario actual (para el panel de fichaje)
   const todayStr = new Date().toISOString().split('T')[0];
-  const todayLog = staffTimeLogs.find(log => log.userName === currentUser && log.date === todayStr && log.checkIn); // Busca el log de hoy que tenga checkIn
+  const todayLog = staffTimeLogs.find(log => log.userName === currentUser && log.date === todayStr && log.checkIn && !log.checkOut); // Busca el log de hoy que tenga checkIn pero no checkOut
 
   // Obtener lista de usuarios únicos de los logs para el filtro de Gonzalo
   const staffUsersList = [...new Set(staffTimeLogs.map(log => log.userName))];
@@ -1784,7 +1890,7 @@ const App = () => {
             
             {/* RENDER PANELES DE CONTROL / PERSONAL */}
             {activeTab === 'control' && <StaffControlPanel currentUser={currentUser} todayLog={todayLog} onCheckIn={handleStaffCheckIn} onCheckOut={handleStaffCheckOut} />}
-            {activeTab === 'personal' && <StaffLogViewer logs={staffTimeLogs} onExport={() => handleExport('fichajes')} staffUsers={staffUsersList} />}
+            {activeTab === 'personal' && <StaffLogViewer logs={staffTimeLogs} onExport={() => handleExport('fichajes')} staffUsers={staffUsersList} onUpdateStaffTimeLog={handleUpdateStaffTimeLog} />}
 
             {activeTab === 'inscripciones' && <NewStudentForm onAddChild={handleAddChild} childForm={childForm} onFormChange={setChildForm} schedules={schedules} />}
             {activeTab === 'alumnos' && <StudentList students={children} onSelectChild={setSelectedChild} onDeleteChild={handleDeleteChild} onExport={() => handleExport('alumnos')} />}
@@ -1831,7 +1937,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   headerTitle: { margin: 0, fontSize: '28px', color: '#212529', fontWeight: '700' },
   actionButton: { padding: '10px 15px', border: 'none', borderRadius: '6px', backgroundColor: '#007bff', color: 'white', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', fontWeight: '500', transition: 'background-color 0.2s' },
   contentArea: { padding: '30px', overflowY: 'auto', flex: 1 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '30px' },
+  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '30px' },
   card: { backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' },
   cardTitle: { marginTop: 0, marginBottom: '20px', fontSize: '20px', color: '#343a40', fontWeight: '600' },
   listContainer: { maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' },
