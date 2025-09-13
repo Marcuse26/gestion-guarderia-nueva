@@ -62,10 +62,12 @@ type Student = {
 type Attendance = { id: string; childId: number; childName: string; date: string; entryTime?: string; exitTime?: string; droppedOffBy?: string; pickedUpBy?: string; };
 type Penalty = { id: string; childId: number; childName: string; date: string; amount: number; reason: string; };
 type Invoice = { id: string; numericId: number; childId: number; childName: string; date: string; amount: number; base: number; penalties: number; enrollmentFeeIncluded: boolean; status: 'Pendiente' | 'Pagada' | 'Vencida'; };
-type Staff = { id: string; name: string; username: string; role: string; phone: string; checkIn: string; checkOut: string; };
+// El nombre del empleado (ej: "trabajador1") ES su identificador de login
+type Staff = { id: string; name: string; role: string; phone: string; checkIn: string; checkOut: string; };
 type Config = { centerName: string; currency: string; lateFee: number; };
 type NotificationMessage = { id: number; message: string; };
 type StudentFormData = Omit<Student, 'id' | 'numericId'|'paymentMethod' | 'documents' | 'modificationHistory'> & { paymentMethod: Student['paymentMethod'] | ''; accountHolderName: string; };
+
 
 // --- COMPONENTES DE UI Y LÓGICA ---
 
@@ -772,18 +774,53 @@ const PenaltiesViewer = ({ penalties, config, onExport, onUpdatePenalty, onDelet
     );
 };
 
-const StaffManager = ({ staff, onAddStaff, onUpdateStaff, onExport }: { staff: Staff[], onAddStaff: (newStaff: Omit<Staff, 'id'>) => void, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, onExport: () => void }) => {
-    const [newStaff, setNewStaff] = useState({name: '', username: '', role: '', phone: ''});
-    const handleAdd = (e: React.FormEvent) => { e.preventDefault(); onAddStaff({...newStaff, checkIn: '', checkOut: ''}); setNewStaff({name: '', username: '', role: '', phone: ''}); };
+// --- MODIFICADO: StaffManager ---
+// Prop de onAddStaff cambiada a: (newStaff: Omit<Staff, 'id'>) => Promise<void> | void
+// para arreglar el error de build de Vercel (async vs void)
+const StaffManager = ({ staff, onAddStaff, onUpdateStaff, onExport }: { staff: Staff[], onAddStaff: (newStaff: Omit<Staff, 'id'>) => Promise<void> | void, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, onExport: () => void }) => {
+    // Estado simplificado: el "name" ES el nombre de usuario.
+    const [newStaff, setNewStaff] = useState({name: '', role: '', phone: ''});
+
+    const handleAdd = (e: React.FormEvent) => { 
+        e.preventDefault(); 
+        if (!newStaff.name) {
+            alert("Debes seleccionar un empleado.");
+            return;
+        }
+        // Pasamos el objeto completo, que coincide con Omit<Staff, 'id'>
+        onAddStaff({...newStaff, checkIn: '', checkOut: ''}); 
+        setNewStaff({name: '', role: '', phone: ''}); 
+    };
+
     const handleCheckIn = (id: string) => onUpdateStaff(id, { checkIn: new Date().toLocaleTimeString(), checkOut: '' });
     const handleCheckOut = (id: string) => onUpdateStaff(id, { checkOut: new Date().toLocaleTimeString() });
+
+    // Nombres de empleados ya creados para deshabilitar opciones en el dropdown
+    const createdStaffNames = staff.map(s => s.name);
+    
     return (
         <div style={styles.grid}>
             <div style={styles.card}><h3 style={styles.cardTitle}>Añadir Personal</h3>
                 <form onSubmit={handleAdd}>
-                    <input value={newStaff.name} onChange={(e) => setNewStaff({...newStaff, name: e.target.value})} placeholder="Nombre completo" style={styles.formInput} required />
-                    <input value={newStaff.username} onChange={(e) => setNewStaff({...newStaff, username: e.target.value})} placeholder="Nombre de usuario (ej: trabajador1)" style={styles.formInput} required />
-                    <input value={newStaff.role} onChange={(e) => setNewStaff({...newStaff, role: e.target.value})} placeholder="Cargo" style={styles.formInput} />
+                    {/* CAMBIADO: Input de texto por Select para forzar el nombre correcto */}
+                    <label style={styles.formLabel}>Empleado (Usuario de Login)</label>
+                    <select 
+                        value={newStaff.name} 
+                        onChange={(e) => setNewStaff({...newStaff, name: e.target.value})} 
+                        style={styles.formInput} 
+                        required
+                    >
+                        <option value="">Seleccionar empleado...</option>
+                        {['trabajador1', 'trabajador2', 'trabajador3'].map(workerName => (
+                            <option key={workerName} value={workerName} disabled={createdStaffNames.includes(workerName)}>
+                                {workerName} {createdStaffNames.includes(workerName) ? "(Ya creado)" : ""}
+                            </option>
+                        ))}
+                    </select>
+
+                    <label style={styles.formLabel}>Cargo</label>
+                    <input value={newStaff.role} onChange={(e) => setNewStaff({...newStaff, role: e.target.value})} placeholder="Cargo (ej: Educador)" style={styles.formInput} />
+                    <label style={styles.formLabel}>Teléfono</label>
                     <input value={newStaff.phone} onChange={(e) => setNewStaff({...newStaff, phone: e.target.value})} placeholder="Teléfono" style={styles.formInput} />
                     <button type="submit" style={styles.submitButton}>Añadir Empleado</button>
                 </form>
@@ -793,7 +830,8 @@ const StaffManager = ({ staff, onAddStaff, onUpdateStaff, onExport }: { staff: S
                     <h3 style={styles.cardTitle}>Control Horario del Personal</h3>
                     <button onClick={onExport} style={{...styles.actionButton, backgroundColor: '#17a2b8'}}><Download size={16} style={{marginRight: '8px'}} />Exportar</button>
                 </div>
-                <div style={styles.listContainer}>{staff.map(s => (<div key={s.id} style={styles.listItem}><div><p style={styles.listItemName}>{s.name} <span style={{color: '#6c757d', fontSize: '12px'}}>({s.username})</span></p><p style={styles.listItemInfo}>{s.role}</p></div><div style={{display: 'flex', gap: '10px'}}><button onClick={() => handleCheckIn(s.id)} style={styles.pillSuccess}>Entrada: {s.checkIn || '-'}</button><button onClick={() => handleCheckOut(s.id)} style={styles.pillWarning}>Salida: {s.checkOut || '-'}</button></div></div>))}</div>
+                {/* MODIFICADO: Quitado el span de username, ya no es necesario */}
+                <div style={styles.listContainer}>{staff.map(s => (<div key={s.id} style={styles.listItem}><div><p style={styles.listItemName}>{s.name}</p><p style={styles.listItemInfo}>{s.role}</p></div><div style={{display: 'flex', gap: '10px'}}><button onClick={() => handleCheckIn(s.id)} style={styles.pillSuccess}>Entrada: {s.checkIn || '-'}</button><button onClick={() => handleCheckOut(s.id)} style={styles.pillWarning}>Salida: {s.checkOut || '-'}</button></div></div>))}</div>
             </div>
         </div>
     );
@@ -914,12 +952,17 @@ const AppHistoryViewer = ({ history, onExport }: { history: AppHistoryLog[], onE
     );
 };
 
-// NUEVO COMPONENTE: Control de Fichaje para Empleados
+// --- MODIFICADO: StaffControl ---
+// Ahora busca al empleado por el "currentUser" (ej: "trabajador1")
+// que debe coincidir con el "name" en la base de datos.
 const StaffControl = ({ staff, currentUser, onUpdateStaff, addNotification }: { staff: Staff[], currentUser: string, onUpdateStaff: (id: string, updates: Partial<Staff>) => void, addNotification: (message: string) => void }) => {
-    const staffMember = staff.find(s => s.username.toLowerCase() === currentUser.toLowerCase());
+    
+    // La lógica ahora es directa: buscar en "staff" un empleado cuyo NOMBRE sea igual al USUARIO ACTUAL.
+    const staffMember = staff.find(s => s.name.toLowerCase() === currentUser.toLowerCase());
 
     if (!staffMember) {
-        return <div style={styles.card}><p>No se encontró tu perfil de empleado. Contacta al administrador.</p></div>;
+        // Mensaje de error actualizado para que el admin sepa qué hacer.
+        return <div style={styles.card}><p>No se encontró tu perfil. Pídele al administrador (gonzalo) que cree un perfil de personal con el nombre: <strong>"{currentUser}"</strong>.</p></div>;
     }
 
     const handleCheckIn = () => {
@@ -1133,9 +1176,9 @@ const App = () => {
             }));
             break;
         case 'personal': 
+             // MODIFICADO: Quitado 'Usuario' del export, ya que 'Nombre' ahora es el usuario.
             dataToExport = staff.map(s => ({
                 Nombre: s.name,
-                Usuario: s.username,
                 Cargo: s.role,
                 Telefono: s.phone,
                 Hora_Entrada: s.checkIn,
@@ -1411,10 +1454,12 @@ const App = () => {
         }
     };
     
+    // MODIFICADO: Acepta Omit<Staff, 'id'> que viene del componente StaffManager
     const handleAddStaff = async (staffData: Omit<Staff, 'id'>) => {
         if (!userId) return;
         try {
             const staffCollectionPath = `/artifacts/${appId}/public/data/staff`;
+            // El staffData ya incluye checkIn: '' y checkOut: ''
             await addDoc(collection(db, staffCollectionPath), staffData);
             addNotification("Nuevo miembro de personal añadido.");
         } catch (error) {
