@@ -1595,17 +1595,33 @@ const App = () => {
               const Icon = tab.icon; const isActive = activeTab === tab.id;
               return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
             })}
+
+            {/* --- INICIO DE LA MODIFICACIÓN --- */}
             <h2 style={{...styles.sidebarTitle, marginTop: '20px'}}>Administración</h2>
+            {/* Pestañas de Admin Públicas */}
             {[
               { id: 'facturacion', name: 'Facturación', icon: FileText },
               { id: 'penalizaciones', name: 'Penalizaciones', icon: DollarSign },
-              { id: 'personal', name: 'Personal', icon: Briefcase },
-              { id: 'historial', name: 'Historial Web', icon: History },
-              { id: 'configuracion', name: 'Configuración', icon: SettingsIcon },
             ].map(tab => {
               const Icon = tab.icon; const isActive = activeTab === tab.id;
               return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
             })}
+
+            {/* Pestañas de Admin Restringidas solo a 'gonzalo' */}
+            {currentUser === 'gonzalo' && (
+              <>
+                {[
+                  { id: 'personal', name: 'Personal', icon: Briefcase },
+                  { id: 'historial', name: 'Historial Web', icon: History },
+                  { id: 'configuracion', name: 'Configuración', icon: SettingsIcon },
+                ].map(tab => {
+                  const Icon = tab.icon; const isActive = activeTab === tab.id;
+                  return (<button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{...styles.sidebarButton, ...(isActive ? styles.sidebarButtonActive : {})}}><Icon size={20} style={{ marginRight: '12px' }} /><span>{tab.name}</span></button>);
+                })}
+              </>
+            )}
+            {/* --- FIN DE LA MODIFICACIÓN --- */}
+
           </div>
           <div>
             <div style={styles.currentUserInfo}>
