@@ -62,7 +62,7 @@ type Student = {
 type Attendance = { id: string; childId: number; childName: string; date: string; entryTime?: string; exitTime?: string; droppedOffBy?: string; pickedUpBy?: string; };
 type Penalty = { id: string; childId: number; childName: string; date: string; amount: number; reason: string; };
 type Invoice = { id: string; numericId: number; childId: number; childName: string; date: string; amount: number; base: number; penalties: number; enrollmentFeeIncluded: boolean; status: 'Pendiente' | 'Pagada' | 'Vencida'; };
-type Staff = { id: string; name: string; role: string; phone: string; checkIn: string; checkOut: string; };
+// type Staff = { id: string; name: string; role: string; phone: string; checkIn: string; checkOut: string; }; // ELIMINADO (NO USADO)
 // NUEVO TIPO PARA EL REGISTRO DE FICHAJES
 type StaffTimeLog = {
   id: string;
@@ -1023,7 +1023,7 @@ const App = () => {
   const [childForm, setChildForm] = useState<StudentFormData>({ name: '', surname: '', birthDate: '', address: '', fatherName: '', motherName: '', phone1: '', phone2: '', parentEmail: '', schedule: '', allergies: '', authorizedPickup: '', enrollmentPaid: false, monthlyPayment: true, paymentMethod: '', accountHolderName: '', nif: '', startMonth: '', plannedEndMonth: '' });
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [penalties, setPenalties] = useState<Penalty[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]); // Esto ahora solo sirve para la lista de Staff, no para el fichaje
+  // const [staff, setStaff] = useState<Staff[]>([]); // <-- ESTADO ELIMINADO (NO USADO)
   const [appHistory, setAppHistory] = useState<AppHistoryLog[]>([]);
   const [staffTimeLogs, setStaffTimeLogs] = useState<StaffTimeLog[]>([]); // ESTADO PARA FICHAJES
 
@@ -1066,7 +1066,7 @@ const App = () => {
   // --- LISTENERS DE FIREBASE PARA DATOS EN TIEMPO REAL ---
   const dataListeners = [
       { name: 'children', setter: setChildren },
-      { name: 'staff', setter: setStaff },
+      // { name: 'staff', setter: setStaff }, // <-- LISTENER ELIMINADO
       { name: 'attendance', setter: setAttendance },
       { name: 'penalties', setter: setPenalties },
       { name: 'invoices', setter: setInvoices },
@@ -1187,6 +1187,7 @@ const App = () => {
                 Motivo: p.reason
             }));
             break;
+        // CASE 'personal' ELIMINADO
         // NUEVO CASE DE EXPORTACIÓN PARA FICHAJES
         case 'fichajes':
              dataToExport = staffTimeLogs.map(log => ({
@@ -1780,6 +1781,7 @@ const App = () => {
           </header>
           <div style={styles.contentArea}>
             {activeTab === 'dashboard' && <Dashboard students={children} attendance={attendance} invoices={invoices} schedules={schedules} config={config} />}
+            
             {/* RENDER PANELES DE CONTROL / PERSONAL */}
             {activeTab === 'control' && <StaffControlPanel currentUser={currentUser} todayLog={todayLog} onCheckIn={handleStaffCheckIn} onCheckOut={handleStaffCheckOut} />}
             {activeTab === 'personal' && <StaffLogViewer logs={staffTimeLogs} onExport={() => handleExport('fichajes')} staffUsers={staffUsersList} />}
@@ -1862,7 +1864,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   dayCount: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '10px', fontSize: '16px', color: '#343a40', fontWeight: '600' },
   eventsContainer: { marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '4px' },
   eventPill: { padding: '3px 6px', borderRadius: '4px', fontSize: '11px', backgroundColor: '#e9f3ff', color: '#004085', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  penaltyPill: { padding: '3rdx 6px', borderRadius: '4px', fontSize: '11px', backgroundColor: '#fff3cd', color: '#856404', marginTop: '4px', display: 'flex', alignItems: 'center' },
+  penaltyPill: { padding: '3px 6px', borderRadius: '4px', fontSize: '11px', backgroundColor: '#fff3cd', color: '#856404', marginTop: '4px', display: 'flex', alignItems: 'center' },
   attendancePill: { padding: '3px 6px', borderRadius: '4px', fontSize: '11px', backgroundColor: '#e9f3ff', color: '#004085' },
   attendanceItem: { padding: '15px 5px', borderBottom: '1px solid #f1f3f5' },
   attendanceGrid: { display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr 1.5fr auto', gap: '10px', alignItems: 'center', marginTop: '10px' },
